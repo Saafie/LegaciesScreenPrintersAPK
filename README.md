@@ -8,4 +8,4 @@ Leagacies Screen Printers
 * ST10446806 - Insaaf Behardien
 
 ## Technology used 
-**Security:**
+* **Security:** SHA-256 password encryption encryption
