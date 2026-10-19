@@ -3,7 +3,11 @@ package com.example.legaciesscreenprintersapk
 import com.example.legaciesscreenprintersapk.data.MockRepository
 import com.example.legaciesscreenprintersapk.data.OrderItem
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SecurityUtilsTest {
@@ -56,7 +60,7 @@ class SecurityUtilsTest {
     fun testMockRepositoryOrderCreationAndCalculation() {
         val items = listOf(
             OrderItem("T1", "Banner Design", "Standard Banner Vinyl", null, 3, 100.00, 300.00),
-            OrderItem("T2", "Polo Shirt", "10oz Vinyl (Black, Gold)", null, 2, 120.00, 240.00)
+            OrderItem("T2", "Polo Shirt", "10oz Vinyl (Black, Gold)", null, 2, 120.00, 240.00),
         )
 
         val newOrder = MockRepository.createOrder(
@@ -64,7 +68,7 @@ class SecurityUtilsTest {
             clientPhone = "+27 82 999 8888",
             clientEmail = "test@client.com",
             items = items,
-            isRemoteOrder = true
+            isRemoteOrder = true,
         )
 
         assertNotNull(newOrder)

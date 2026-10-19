@@ -5,8 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,11 +26,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LegaciesScreenPrintersAPKTheme {
+            var isDarkMode by remember { mutableStateOf(value = true) }
+            LegaciesScreenPrintersAPKTheme(darkTheme = isDarkMode, dynamicColor = false) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    LegaciesAppNavigation()
+                    LegaciesAppNavigation(
+                        isDarkMode = isDarkMode,
+                    ) { isDarkMode = it }
                 }
             }
         }
@@ -33,12 +42,15 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LegaciesAppNavigation() {
+fun LegaciesAppNavigation(
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = "login"
+        startDestination = "login",
     ) {
         composable("login") {
             LoginScreen(
@@ -49,7 +61,7 @@ fun LegaciesAppNavigation() {
                 },
                 onNavigateToRegister = {
                     navController.navigate("register")
-                }
+                },
             )
         }
 
@@ -62,18 +74,19 @@ fun LegaciesAppNavigation() {
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
-                }
+                },
             )
         }
 
         composable("main") {
             MainScreen(
-                onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("main") { inclusive = true }
-                    }
+                isDarkMode = isDarkMode,
+                onDarkModeChange = onDarkModeChange,
+            ) {
+                navController.navigate("login") {
+                    popUpTo("main") { inclusive = true }
                 }
-            )
+            }
         }
     }
 }

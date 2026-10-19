@@ -16,18 +16,18 @@ object GoogleAuthHelper {
     data class GoogleUser(
         val email: String,
         val displayName: String,
-        val idToken: String?
+        val idToken: String?,
     )
 
     suspend fun signInWithGoogle(
         context: Context,
         onSuccess: (GoogleUser) -> Unit,
-        onError: (String) -> Unit
+        onError: (String) -> Unit,
     ) {
         val credentialManager = CredentialManager.create(context)
 
         val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
+            .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts = false)
             .setServerClientId(SERVER_CLIENT_ID)
             .setAutoSelectEnabled(false)
             .build()
@@ -40,12 +40,12 @@ object GoogleAuthHelper {
             val result = credentialManager.getCredential(context = context, request = request)
             val credential = result.credential
 
-            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+            if (credential is CustomCredential && (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)) {
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                 val googleUser = GoogleUser(
                     email = googleIdTokenCredential.id,
                     displayName = googleIdTokenCredential.displayName ?: "Google User",
-                    idToken = googleIdTokenCredential.idToken
+                    idToken = googleIdTokenCredential.idToken,
                 )
                 onSuccess(googleUser)
             } else {
@@ -53,7 +53,7 @@ object GoogleAuthHelper {
                 val fallbackUser = GoogleUser(
                     email = "google.user@example.com",
                     displayName = "Google Customer",
-                    idToken = "mock_google_sso_token_2026"
+                    idToken = "mock_google_sso_token_2026",
                 )
                 onSuccess(fallbackUser)
             }
@@ -62,7 +62,7 @@ object GoogleAuthHelper {
             val fallbackUser = GoogleUser(
                 email = "google.user@example.com",
                 displayName = "Google Customer (SSO)",
-                idToken = "mock_sso_token"
+                idToken = "mock_sso_token",
             )
             onSuccess(fallbackUser)
         } catch (e: Exception) {

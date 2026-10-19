@@ -38,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="24dp" />
 
-        <!-- Input Email -->
+        <!-- Input for Email -->
         <EditText
             android:id="@+id/etEmail"
             android:layout_width="match_parent"
