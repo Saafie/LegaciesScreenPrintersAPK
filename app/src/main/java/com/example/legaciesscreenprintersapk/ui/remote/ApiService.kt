@@ -1,99 +1,40 @@
 package com.example.legaciesscreenprintersapk.ui.remote
 
-import com.example.legaciesscreenprintersapk.data.Order
-import com.example.legaciesscreenprintersapk.data.OrderItem
-import com.example.legaciesscreenprintersapk.data.VinylMaterial
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import com.example.legaciesscreenprintersapk.ui.remote.models.AuthRequest
+import com.example.legaciesscreenprintersapk.ui.remote.models.AuthResponse
+import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderRequest
+import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderResponse
+import com.example.legaciesscreenprintersapk.ui.remote.models.MaterialDto
+import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
+import com.example.legaciesscreenprintersapk.ui.remote.models.RegisterRequest
+import com.example.legaciesscreenprintersapk.ui.remote.models.UpdateStatusRequest
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
-import java.util.concurrent.TimeUnit
-
-data class LoginRequest(
-    val email: String,
-    val passwordHash: String
-)
-
-data class RegisterRequest(
-    val name: String,
-    val phone: String,
-    val email: String,
-    val passwordHash: String
-)
-
-data class AuthResponse(
-    val success: Boolean,
-    val message: String,
-    val token: String? = null,
-    val userId: String? = null,
-    val userName: String? = null
-)
-
-data class CreateOrderRequest(
-    val clientName: String,
-    val clientPhone: String,
-    val clientEmail: String,
-    val items: List<OrderItemDto>,
-    val isRemoteOrder: Boolean = true
-)
-
-data class OrderItemDto(
-    val designName: String,
-    val materialName: String,
-    val artworkUri: String?,
-    val quantity: Int,
-    val unitPrice: Double
-)
-
-data class OrderResponse(
-    val success: Boolean,
-    val message: String,
-    val orderId: String? = null,
-    val order: Order? = null
-)
 
 interface ApiService {
-    @POST("api/auth/login")
-    suspend fun loginUser(@Body request: LoginRequest): Response<AuthResponse>
 
     @POST("api/auth/register")
-    suspend fun registerUser(@Body request: RegisterRequest): Response<AuthResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    @POST("api/auth/login")
+    suspend fun login(@Body request: AuthRequest): Response<AuthResponse>
 
     @GET("api/materials")
-    suspend fun getMaterials(): Response<List<VinylMaterial>>
+    suspend fun getMaterials(): Response<List<MaterialDto>>
 
-    @POST("api/orders/create")
-    suspend fun createOrder(@Body request: CreateOrderRequest): Response<OrderResponse>
+    @POST("api/orders")
+    suspend fun createOrder(@Body request: CreateOrderRequest): Response<CreateOrderResponse>
 
-    @GET("api/orders/track/{orderId}")
-    suspend fun trackOrder(@Path("orderId") orderId: String): Response<OrderResponse>
+    @GET("api/orders/track/{orderRef}")
+    suspend fun trackOrder(@Path("orderRef") orderRef: String): Response<OrderTrackingDto>
 
-    companion object {
-        private const val BASE_URL = "http://10.0.2.2:5000/"
+    @GET("api/orders")
+    suspend fun getAllOrders(): Response<List<OrderTrackingDto>>
 
-        fun create(): ApiService {
-            val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-
-            val client = OkHttpClient.Builder()
-                .addInterceptor(logging)
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .build()
-
-            val retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-            return retrofit.create(ApiService::class.java)
-        }
-    }
+    @PUT("api/orders/{orderId}/status")
+    suspend fun updateStatus(@Path("orderId") orderId: Int, @Body request: UpdateStatusRequest): Response<Unit>
 }

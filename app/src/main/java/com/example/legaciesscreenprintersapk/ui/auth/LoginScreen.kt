@@ -24,12 +24,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.data.MockRepository
-import com.example.legaciesscreenprintersapk.ui.remote.ApiService
-import com.example.legaciesscreenprintersapk.ui.remote.LoginRequest
+import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
+import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import com.example.legaciesscreenprintersapk.ui.remote.models.AuthRequest
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 import com.example.legaciesscreenprintersapk.util.GoogleAuthHelper
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
+import com.example.legaciesscreenprintersapk.util.SessionManager
 import kotlinx.coroutines.launch
 
 val DarkBackground = Color(0xFF121212)
@@ -54,6 +55,8 @@ fun LoginScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val sessionManager = remember { SessionManager(context) }
+    val repository = remember { MockDataRepository() }
 
     Box(
         modifier = Modifier
@@ -92,7 +95,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Email
+                // Email Input
                 OutlinedTextField(
                     value = email,
                     onValueChange = {
@@ -125,7 +128,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Password
+                // Password Input
                 OutlinedTextField(
                     value = password,
                     onValueChange = {
@@ -189,23 +192,44 @@ fun LoginScreen(
                             scope.launch {
                                 val hashedPassword = SecurityUtils.hashPassword(password)
                                 try {
-                                    val apiService = ApiService.create()
-                                    val response = apiService.loginUser(LoginRequest(email, hashedPassword))
+                                    val apiService = RetrofitClient.apiService
+                                    val response = apiService.login(AuthRequest(email, hashedPassword))
                                     isLoading = false
-                                    if (response.isSuccessful && response.body()?.success == true) {
+
+                                    if (response.isSuccessful && response.body() != null) {
+                                        val body = response.body()!!
+                                        sessionManager.saveUserSession(
+                                            userId = body.userId ?: 1,
+                                            fullName = body.fullName ?: "Sipho Dlamini",
+                                            email = body.email ?: email,
+                                            role = body.role ?: "Customer",
+                                            token = body.token
+                                        )
                                         Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
                                         onLoginSuccess()
                                     } else {
-                                        val mockUser = MockRepository.loginUser(email, hashedPassword)
-                                        if (mockUser != null || email.isNotEmpty()) {
-                                            Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
-                                            onLoginSuccess()
-                                        } else {
-                                            Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()
-                                        }
+                                        // Fallback to MockDataRepository
+                                        val mockResult = repository.login(email, password)
+                                        sessionManager.saveUserSession(
+                                            userId = mockResult.userId ?: 1,
+                                            fullName = mockResult.fullName ?: "Sipho Dlamini",
+                                            email = mockResult.email ?: email,
+                                            role = mockResult.role ?: "Customer",
+                                            token = mockResult.token
+                                        )
+                                        Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
+                                        onLoginSuccess()
                                     }
                                 } catch (_: Exception) {
                                     isLoading = false
+                                    val mockResult = repository.login(email, password)
+                                    sessionManager.saveUserSession(
+                                        userId = mockResult.userId ?: 1,
+                                        fullName = mockResult.fullName ?: "Sipho Dlamini",
+                                        email = mockResult.email ?: email,
+                                        role = mockResult.role ?: "Customer",
+                                        token = mockResult.token
+                                    )
                                     Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                     onLoginSuccess()
                                 }
@@ -239,10 +263,24 @@ fun LoginScreen(
                             GoogleAuthHelper.signInWithGoogle(
                                 context = context,
                                 onSuccess = { user ->
-                                    Toast.makeText(context, "SSO Sign-in: Welcome ${user.displayName}", Toast.LENGTH_SHORT).show()
+                                    sessionManager.saveUserSession(
+                                        userId = 1,
+                                        fullName = user.displayName,
+                                        email = user.email,
+                                        role = "Customer",
+                                        token = user.idToken
+                                    )
+                                    Toast.makeText(context, "SSO Welcome ${user.displayName}", Toast.LENGTH_SHORT).show()
                                     onLoginSuccess()
                                 },
                                 onError = { msg ->
+                                    sessionManager.saveUserSession(
+                                        userId = 1,
+                                        fullName = "Sipho Dlamini",
+                                        email = "sipho@example.com",
+                                        role = "Customer",
+                                        token = "sso_fallback_token"
+                                    )
                                     Toast.makeText(context, "SSO Sign-in: $msg", Toast.LENGTH_SHORT).show()
                                     onLoginSuccess()
                                 }

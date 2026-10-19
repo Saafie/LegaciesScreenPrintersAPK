@@ -19,23 +19,62 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.data.MockRepository
-import com.example.legaciesscreenprintersapk.data.Order
 import com.example.legaciesscreenprintersapk.data.TrackingStage
 import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
 import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
 import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
 import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
+import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
+import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
+import kotlinx.coroutines.launch
+
+private fun mapStatusToStageIndex(status: String): Int {
+    val lower = status.lowercase()
+    return when {
+        lower.contains("collection") || lower.contains("ready") || lower.contains("completed") || lower.contains("stage 4") -> 3
+        lower.contains("printing") || lower.contains("screen") || lower.contains("stage 3") -> 2
+        lower.contains("cutting") || lower.contains("prep") || lower.contains("vinyl") || lower.contains("stage 2") -> 1
+        else -> 0
+    }
+}
 
 @Composable
 fun TrackOrderScreen(
     initialSearchQuery: String = "ORD5824"
 ) {
     var searchQuery by remember { mutableStateOf(initialSearchQuery) }
-    var searchedOrder by remember { mutableStateOf<Order?>(MockRepository.findOrderById(initialSearchQuery)) }
+    var searchedOrder by remember { mutableStateOf<OrderTrackingDto?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSearching by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val repository = remember { MockDataRepository() }
+
+    // Initial search on screen launch
+    LaunchedEffect(initialSearchQuery) {
+        if (initialSearchQuery.isNotBlank()) {
+            try {
+                val response = RetrofitClient.apiService.trackOrder(initialSearchQuery.trim())
+                if (response.isSuccessful && response.body() != null) {
+                    searchedOrder = response.body()
+                    errorMessage = null
+                } else {
+                    searchedOrder = repository.trackOrder(initialSearchQuery)
+                    if (searchedOrder == null) {
+                        errorMessage = "Order reference not found. Please verify the code and try again."
+                    }
+                }
+            } catch (_: Exception) {
+                searchedOrder = repository.trackOrder(initialSearchQuery)
+                if (searchedOrder == null) {
+                    errorMessage = "Order reference not found. Please verify the code and try again."
+                }
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -99,20 +138,50 @@ fun TrackOrderScreen(
 
                         Button(
                             onClick = {
-                                val results = MockRepository.searchOrders(searchQuery)
-                                if (results.isNotEmpty()) {
-                                    searchedOrder = results.first()
+                                if (searchQuery.isNotBlank()) {
+                                    isSearching = true
                                     errorMessage = null
-                                } else {
-                                    searchedOrder = null
-                                    errorMessage = "No order found matching '$searchQuery'. Please verify Order ID or phone number."
+                                    scope.launch {
+                                        try {
+                                            val response = RetrofitClient.apiService.trackOrder(searchQuery.trim())
+                                            isSearching = false
+                                            if (response.isSuccessful && response.body() != null) {
+                                                searchedOrder = response.body()
+                                                errorMessage = null
+                                            } else {
+                                                val fallback = repository.trackOrder(searchQuery)
+                                                if (fallback != null) {
+                                                    searchedOrder = fallback
+                                                    errorMessage = null
+                                                } else {
+                                                    searchedOrder = null
+                                                    errorMessage = "Order reference not found. Please verify the code and try again."
+                                                }
+                                            }
+                                        } catch (_: Exception) {
+                                            isSearching = false
+                                            val fallback = repository.trackOrder(searchQuery)
+                                            if (fallback != null) {
+                                                searchedOrder = fallback
+                                                errorMessage = null
+                                            } else {
+                                                searchedOrder = null
+                                                errorMessage = "Order reference not found. Please verify the code and try again."
+                                            }
+                                        }
+                                    }
                                 }
                             },
+                            enabled = !isSearching,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.height(56.dp)
                         ) {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = TextWhite)
+                            if (isSearching) {
+                                CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(24.dp))
+                            } else {
+                                Icon(Icons.Default.Search, contentDescription = "Search", tint = TextWhite)
+                            }
                         }
                     }
 
@@ -131,11 +200,11 @@ fun TrackOrderScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                StatusBadgeCard(order = order)
+                StatusBadgeCard(statusText = order.status, createdAt = order.createdAt)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                FourStageTimelineCard(currentStageIndex = order.currentStageIndex)
+                FourStageTimelineCard(currentStageIndex = mapStatusToStageIndex(order.status))
             } ?: run {
                 if (errorMessage == null) {
                     Card(
@@ -163,7 +232,7 @@ fun TrackOrderScreen(
 }
 
 @Composable
-fun OrderDetailsCard(order: Order) {
+fun OrderDetailsCard(order: OrderTrackingDto) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -175,13 +244,13 @@ fun OrderDetailsCard(order: Order) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Order Ref: ${order.id}", color = PrimaryOrange, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Order Ref: ${order.orderRef}", color = PrimaryOrange, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Surface(
                     color = PrimaryOrange.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = if (order.isRemoteOrder) "Remote Order" else "Walk-In Counter",
+                        text = "Remote Order",
                         color = PrimaryOrange,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -201,12 +270,7 @@ fun OrderDetailsCard(order: Order) {
             Spacer(modifier = Modifier.height(4.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = "Contact Phone:", color = TextGray, fontSize = 13.sp)
-                Text(text = order.clientPhone, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Client Email:", color = TextGray, fontSize = 13.sp)
-                Text(text = order.clientEmail, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(text = order.contact, color = TextWhite, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -222,8 +286,8 @@ fun OrderDetailsCard(order: Order) {
                         .padding(vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "• ${item.designName} (${item.materialName}) x${item.quantity}", color = TextWhite, fontSize = 12.sp)
-                    Text(text = "R %.2f".format(item.totalPrice), color = TextGray, fontSize = 12.sp)
+                    Text(text = "• ${item.designName} (${item.materialName ?: "Vinyl Substrate"}) x${item.quantity}", color = TextWhite, fontSize = 12.sp)
+                    Text(text = "R %.2f".format(item.subtotal), color = TextGray, fontSize = 12.sp)
                 }
             }
 
@@ -237,7 +301,7 @@ fun OrderDetailsCard(order: Order) {
 }
 
 @Composable
-fun StatusBadgeCard(order: Order) {
+fun StatusBadgeCard(statusText: String, createdAt: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -248,14 +312,14 @@ fun StatusBadgeCard(order: Order) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = order.statusText,
+                text = "CURRENT STATUS: ${statusText.uppercase()}",
                 color = PrimaryOrange,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = order.estimatedCompletion,
+                text = "Order Placed: $createdAt",
                 color = TextWhite,
                 fontSize = 12.sp
             )
@@ -265,7 +329,22 @@ fun StatusBadgeCard(order: Order) {
 
 @Composable
 fun FourStageTimelineCard(currentStageIndex: Int) {
-    val stages = MockRepository.getTrackingStages(currentStageIndex)
+    val stageDefinitions = listOf(
+        Pair("Order Received & Verified", "Artwork and dimensions verified by prepress"),
+        Pair("Vinyl Cutting & Screen Prep", "Precision plotter cutting vinyl & burning screens"),
+        Pair("Screen Printing", "Multi-pass ink application & tunnel curing"),
+        Pair("Ready for Collection", "Quality checked and packaged at workshop counter")
+    )
+
+    val stages = stageDefinitions.mapIndexed { index, (title, desc) ->
+        TrackingStage(
+            stageNumber = index + 1,
+            title = title,
+            description = desc,
+            isCompleted = index <= currentStageIndex,
+            isCurrent = index == currentStageIndex
+        )
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -300,7 +379,6 @@ fun TimelineStageRowItem(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        // Stage Indicator Circle & Line
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(36.dp)
@@ -354,7 +432,6 @@ fun TimelineStageRowItem(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Stage Text Details
         Column(modifier = Modifier.padding(top = 2.dp)) {
             Text(
                 text = "Stage ${stage.stageNumber}: ${stage.title}",

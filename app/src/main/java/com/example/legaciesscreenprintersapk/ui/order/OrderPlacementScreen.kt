@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,19 +25,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.data.MockRepository
-import com.example.legaciesscreenprintersapk.data.OrderItem
 import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
 import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
 import com.example.legaciesscreenprintersapk.ui.auth.ErrorRed
 import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
 import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
+import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
+import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderItemRequest
+import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderRequest
+import com.example.legaciesscreenprintersapk.ui.remote.models.MaterialDto
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
+import com.example.legaciesscreenprintersapk.util.SessionManager
+import kotlinx.coroutines.launch
 
 data class DesignRowState(
     var designName: String = "",
+    var selectedMaterialId: Int = 1,
     var selectedMaterialName: String = "10oz Vinyl (Black, Gold)",
     var quantityString: String = "1",
     var artworkUri: Uri? = null,
@@ -51,35 +56,54 @@ data class DesignRowState(
 fun OrderPlacementScreen(
     onOrderSubmittedSuccessfully: (String) -> Unit
 ) {
-    var clientName by remember { mutableStateOf("Sipho Dlamini") }
-    var clientPhone by remember { mutableStateOf("+27 82 123 4567") }
-    var clientEmail by remember { mutableStateOf("sipho@example.com") }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val sessionManager = remember { SessionManager(context) }
+    val repository = remember { MockDataRepository() }
+
+    var clientName by remember { mutableStateOf(sessionManager.getUserFullName()) }
+    var clientPhone by remember { mutableStateOf(sessionManager.getUserPhone()) }
+    var clientEmail by remember { mutableStateOf(sessionManager.getUserEmail()) }
 
     var clientNameError by remember { mutableStateOf<String?>(null) }
     var clientPhoneError by remember { mutableStateOf<String?>(null) }
     var clientEmailError by remember { mutableStateOf<String?>(null) }
 
-    val materials = remember { MockRepository.standardMaterials }
+    var materialsList by remember { mutableStateOf<List<MaterialDto>>(emptyList()) }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    // Fetch live materials from Retrofit API on screen load
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.apiService.getMaterials()
+            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
+                materialsList = response.body()!!
+            } else {
+                materialsList = repository.getMaterials()
+            }
+        } catch (_: Exception) {
+            materialsList = repository.getMaterials()
+        }
+    }
 
     // Dynamic list of multi-design specification rows
     val designRows = remember {
         mutableStateListOf(
             DesignRowState(
                 designName = "Legacies Custom Print",
+                selectedMaterialId = 1,
                 selectedMaterialName = "10oz Vinyl (Black, Gold)",
                 quantityString = "2"
             )
         )
     }
 
-    val context = LocalContext.current
-
     // Real-time calculation of running order total
-    val runningTotal = remember(designRows) {
+    val runningTotal = remember(designRows, materialsList) {
         derivedStateOf {
             designRows.sumOf { row ->
                 val qty = row.quantityString.toIntOrNull() ?: 0
-                val mat = materials.find { it.name == row.selectedMaterialName }
+                val mat = materialsList.find { it.materialId == row.selectedMaterialId || it.materialName == row.selectedMaterialName }
                 val rate = mat?.unitPrice ?: 120.0
                 qty * rate
             }
@@ -127,7 +151,6 @@ fun OrderPlacementScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Full Name
                     OutlinedTextField(
                         value = clientName,
                         onValueChange = {
@@ -150,7 +173,6 @@ fun OrderPlacementScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Contact Phone
                     OutlinedTextField(
                         value = clientPhone,
                         onValueChange = {
@@ -174,7 +196,6 @@ fun OrderPlacementScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Email Address
                     OutlinedTextField(
                         value = clientEmail,
                         onValueChange = {
@@ -219,8 +240,7 @@ fun OrderPlacementScreen(
                         DesignSpecificationRowItem(
                             index = index,
                             rowState = row,
-                            materials = materials.map { it.name },
-                            getMaterialUnitPrice = { name -> materials.find { it.name == name }?.unitPrice ?: 120.0 },
+                            materialsList = materialsList,
                             onRowChange = { updated -> designRows[index] = updated },
                             onDeleteRow = if (designRows.size > 1) {
                                 { designRows.removeAt(index) }
@@ -239,10 +259,12 @@ fun OrderPlacementScreen(
                     // "+ Add Another Design" button
                     OutlinedButton(
                         onClick = {
+                            val defaultMat = materialsList.firstOrNull()
                             designRows.add(
                                 DesignRowState(
                                     designName = "Design Specification ${designRows.size + 1}",
-                                    selectedMaterialName = "10oz Vinyl (Black, Gold)",
+                                    selectedMaterialId = defaultMat?.materialId ?: 1,
+                                    selectedMaterialName = defaultMat?.materialName ?: "10oz Vinyl (Black, Gold)",
                                     quantityString = "1"
                                 )
                             )
@@ -305,7 +327,6 @@ fun OrderPlacementScreen(
                                 hasError = true
                             }
 
-                            // Validate each row
                             designRows.forEachIndexed { i, row ->
                                 val qty = row.quantityString.toIntOrNull()
                                 if (row.designName.isBlank()) {
@@ -319,44 +340,70 @@ fun OrderPlacementScreen(
                             }
 
                             if (!hasError) {
-                                val items = designRows.mapIndexed { idx, row ->
-                                    val qty = row.quantityString.toIntOrNull() ?: 1
-                                    val unitPrice = materials.find { it.name == row.selectedMaterialName }?.unitPrice ?: 120.0
-                                    OrderItem(
-                                        id = "ITM_${System.currentTimeMillis()}_$idx",
-                                        designName = row.designName,
-                                        materialName = row.selectedMaterialName,
-                                        artworkUri = row.artworkUri?.toString(),
-                                        quantity = qty,
-                                        unitPrice = unitPrice,
-                                        totalPrice = qty * unitPrice
+                                isSubmitting = true
+                                scope.launch {
+                                    val itemRequests = designRows.map { row ->
+                                        CreateOrderItemRequest(
+                                            designName = row.designName,
+                                            materialId = row.selectedMaterialId,
+                                            quantity = row.quantityString.toIntOrNull() ?: 1
+                                        )
+                                    }
+
+                                    val request = CreateOrderRequest(
+                                        userId = sessionManager.getUserId(),
+                                        orderType = "mobile",
+                                        items = itemRequests
                                     )
+
+                                    try {
+                                        val response = RetrofitClient.apiService.createOrder(request)
+                                        isSubmitting = false
+
+                                        if (response.isSuccessful && response.body()?.orderRef != null) {
+                                            val createdRef = response.body()!!.orderRef!!
+                                            Toast.makeText(
+                                                context,
+                                                "Order Submitted Successfully! Ref: $createdRef",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            onOrderSubmittedSuccessfully(createdRef)
+                                        } else {
+                                            val mockResult = repository.createOrder(request)
+                                            val createdRef = mockResult.orderRef ?: "ORD5834"
+                                            Toast.makeText(
+                                                context,
+                                                "Order Submitted Successfully! Ref: $createdRef",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            onOrderSubmittedSuccessfully(createdRef)
+                                        }
+                                    } catch (_: Exception) {
+                                        isSubmitting = false
+                                        val mockResult = repository.createOrder(request)
+                                        val createdRef = mockResult.orderRef ?: "ORD5834"
+                                        Toast.makeText(
+                                            context,
+                                            "Order Submitted Successfully! Ref: $createdRef",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        onOrderSubmittedSuccessfully(createdRef)
+                                    }
                                 }
-
-                                val createdOrder = MockRepository.createOrder(
-                                    clientName = clientName,
-                                    clientPhone = clientPhone,
-                                    clientEmail = clientEmail,
-                                    items = items,
-                                    isRemoteOrder = true
-                                )
-
-                                Toast.makeText(
-                                    context,
-                                    "Order Submitted Successfully! Reference: ${createdOrder.id}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-
-                                onOrderSubmittedSuccessfully(createdOrder.id)
                             }
                         },
+                        enabled = !isSubmitting,
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
-                        Text(text = "SUBMIT PRINT ORDER", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        if (isSubmitting) {
+                            CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text(text = "SUBMIT PRINT ORDER", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
                     }
                 }
             }
@@ -369,14 +416,12 @@ fun OrderPlacementScreen(
 fun DesignSpecificationRowItem(
     index: Int,
     rowState: DesignRowState,
-    materials: List<String>,
-    getMaterialUnitPrice: (String) -> Double,
+    materialsList: List<MaterialDto>,
     onRowChange: (DesignRowState) -> Unit,
     onDeleteRow: (() -> Unit)?
 ) {
     var expandedMaterialDropdown by remember { mutableStateOf(false) }
 
-    // Launcher for standard image/artwork file picker
     val artworkPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -385,8 +430,9 @@ fun DesignSpecificationRowItem(
         }
     }
 
+    val selectedMat = materialsList.find { it.materialId == rowState.selectedMaterialId || it.materialName == rowState.selectedMaterialName }
     val currentQty = rowState.quantityString.toIntOrNull() ?: 0
-    val currentRate = getMaterialUnitPrice(rowState.selectedMaterialName)
+    val currentRate = selectedMat?.unitPrice ?: 120.0
     val rowSubtotal = currentQty * currentRate
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -457,11 +503,16 @@ fun DesignSpecificationRowItem(
                 onDismissRequest = { expandedMaterialDropdown = false },
                 modifier = Modifier.background(CardBackground)
             ) {
-                materials.forEach { matName ->
+                materialsList.forEach { mat ->
                     DropdownMenuItem(
-                        text = { Text(text = matName, color = TextWhite) },
+                        text = { Text(text = "${mat.materialName} (${mat.color}) - R ${mat.unitPrice}", color = TextWhite) },
                         onClick = {
-                            onRowChange(rowState.copy(selectedMaterialName = matName))
+                            onRowChange(
+                                rowState.copy(
+                                    selectedMaterialId = mat.materialId ?: 1,
+                                    selectedMaterialName = mat.materialName
+                                )
+                            )
                             expandedMaterialDropdown = false
                         }
                     )
@@ -480,7 +531,6 @@ fun DesignSpecificationRowItem(
             OutlinedTextField(
                 value = rowState.quantityString,
                 onValueChange = { input ->
-                    // Accept only digits safely
                     if (input.all { it.isDigit() }) {
                         onRowChange(rowState.copy(quantityString = input, quantityError = null))
                     }

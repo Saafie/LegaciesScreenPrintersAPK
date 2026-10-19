@@ -23,12 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.data.MockRepository
 import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
 import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
 import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
 import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
+import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
+import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 
 @Composable
@@ -194,7 +196,24 @@ fun QuickActionCard(
 
 @Composable
 fun OrderHistoryDialog(onDismiss: () -> Unit) {
-    val orders = remember { MockRepository.getOrders() }
+    var ordersList by remember { mutableStateOf<List<OrderTrackingDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val repository = remember { MockDataRepository() }
+
+    LaunchedEffect(Unit) {
+        try {
+            val response = RetrofitClient.apiService.getAllOrders()
+            isLoading = false
+            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
+                ordersList = response.body()!!
+            } else {
+                ordersList = repository.getAllOrders()
+            }
+        } catch (_: Exception) {
+            isLoading = false
+            ordersList = repository.getAllOrders()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -203,30 +222,41 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
             Text(text = "Past Order History", color = PrimaryOrange, fontWeight = FontWeight.Bold)
         },
         text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 350.dp)
-            ) {
-                items(orders) { order ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = order.id, color = PrimaryOrange, fontWeight = FontWeight.Bold)
-                                Text(text = "R %.2f".format(order.totalAmount), color = TextWhite, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PrimaryOrange)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 350.dp)
+                ) {
+                    items(ordersList) { order ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = order.orderRef, color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                                    Text(text = "R %.2f".format(order.totalAmount), color = TextWhite, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(text = "Client: ${order.clientName}", color = TextWhite, fontSize = 12.sp)
+                                Text(text = "Date: ${order.createdAt}", color = TextGray, fontSize = 11.sp)
+                                Text(text = order.status, color = PrimaryOrange, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "Client: ${order.clientName}", color = TextWhite, fontSize = 12.sp)
-                            Text(text = "Date: ${order.createdAt}", color = TextGray, fontSize = 11.sp)
-                            Text(text = order.statusText, color = PrimaryOrange, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
