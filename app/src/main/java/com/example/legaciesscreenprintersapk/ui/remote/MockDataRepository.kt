@@ -1,14 +1,17 @@
 package com.example.legaciesscreenprintersapk.ui.remote
 
+import android.content.Context
 import android.util.Log
 import com.example.legaciesscreenprintersapk.ui.remote.models.*
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
+import com.example.legaciesscreenprintersapk.util.SessionManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 
 class MockDataRepository(
+    private val context: Context? = null,
     private val apiService: ApiService = RetrofitClient.apiService
 ) {
     companion object {
@@ -324,6 +327,9 @@ class MockDataRepository(
         )
 
         seededOrders.add(0, newOrderTracking)
+        if (context != null) {
+            SessionManager.saveCreatedOrder(context, newOrderTracking)
+        }
 
         return CreateOrderResponse(
             message = "Order created successfully (Mock Fallback)",
@@ -331,6 +337,17 @@ class MockDataRepository(
             orderId = newOrderId,
             total = totalAmount
         )
+    }
+
+    private fun getCombinedOrders(): List<OrderTrackingDto> {
+        if (context == null) return seededOrders.toList()
+        val saved = SessionManager.getSavedCreatedOrders(context)
+        if (saved.isEmpty()) return seededOrders.toList()
+        val savedRefs = saved.map { it.orderRef }.toSet()
+        val list = mutableListOf<OrderTrackingDto>()
+        list.addAll(saved)
+        list.addAll(seededOrders.filter { !savedRefs.contains(it.orderRef) })
+        return list
     }
 
     suspend fun trackOrder(orderRefQuery: String): OrderTrackingDto? {
@@ -350,7 +367,7 @@ class MockDataRepository(
         val digits = trimmed.filter { it.isDigit() }
         val digitsNoLeadingZero = digits.removePrefix("0")
 
-        return seededOrders.find { order ->
+        return getCombinedOrders().find { order ->
             val contactDigits = order.contact.filter { it.isDigit() }
             order.orderRef.equals(trimmed, ignoreCase = true) ||
                     (digits.isNotEmpty() && (contactDigits.contains(digits) || (digitsNoLeadingZero.isNotEmpty() && contactDigits.contains(digitsNoLeadingZero)))) ||
@@ -369,7 +386,7 @@ class MockDataRepository(
                 Log.w(TAG, "Network getAllOrders failed, using mock fallback: ${e.message}")
             }
         }
-        return seededOrders.toList()
+        return getCombinedOrders()
     }
 
     suspend fun updateStatus(orderId: Int, newStatus: String): Boolean {

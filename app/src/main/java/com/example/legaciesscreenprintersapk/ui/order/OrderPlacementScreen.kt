@@ -58,7 +58,7 @@ fun OrderPlacementScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sessionManager = remember { SessionManager(context) }
-    val repository = remember { MockDataRepository() }
+    val repository = remember { MockDataRepository(context) }
 
     var clientName by remember { mutableStateOf(sessionManager.getUserFullName()) }
     var clientPhone by remember { mutableStateOf(sessionManager.getUserPhone()) }

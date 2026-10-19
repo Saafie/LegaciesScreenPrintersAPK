@@ -203,7 +203,7 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
 
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    val repository = remember { MockDataRepository() }
+    val repository = remember { MockDataRepository(context) }
 
     val currentUserId = sessionManager.getUserId()
 
