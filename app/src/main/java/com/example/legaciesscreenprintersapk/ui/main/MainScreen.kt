@@ -13,9 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
-import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
-import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.home.HomeScreen
 import com.example.legaciesscreenprintersapk.ui.order.OrderPlacementScreen
 import com.example.legaciesscreenprintersapk.ui.settings.SettingsScreen
@@ -31,7 +28,9 @@ enum class BottomTab(val title: String, val icon: ImageVector) {
 
 @Composable
 fun MainScreen(
-    onLogout: () -> Unit
+    isDarkMode: Boolean = false,
+    onDarkModeChange: (Boolean) -> Unit = {},
+    onLogout: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var trackSearchQuery by remember { mutableStateOf("ORD5824") }
@@ -39,21 +38,21 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = CardBackground,
+                containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
                 BottomTab.entries.forEach { tab ->
                     NavigationBarItem(
-                        selected = selectedTab == tab,
+                        selected = (selectedTab == tab),
                         onClick = { selectedTab = tab },
                         icon = { Icon(imageVector = tab.icon, contentDescription = tab.title) },
                         label = { Text(text = tab.title) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryOrange,
-                            selectedTextColor = PrimaryOrange,
-                            unselectedIconColor = TextGray,
-                            unselectedTextColor = TextGray,
-                            indicatorColor = CardBackground
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor = MaterialTheme.colorScheme.surface
                         )
                     )
                 }
@@ -67,18 +66,18 @@ fun MainScreen(
             when (selectedTab) {
                 BottomTab.HOME -> HomeScreen(
                     onNavigateToOrder = { selectedTab = BottomTab.ORDER },
-                    onNavigateToTrack = { selectedTab = BottomTab.TRACK }
+                    onNavigateToTrack = { selectedTab = BottomTab.TRACK },
                 )
-                BottomTab.ORDER -> OrderPlacementScreen(
-                    onOrderSubmittedSuccessfully = { orderId ->
-                        trackSearchQuery = orderId
-                        selectedTab = BottomTab.TRACK
-                    }
-                )
+                BottomTab.ORDER -> OrderPlacementScreen { orderId ->
+                    trackSearchQuery = orderId
+                    selectedTab = BottomTab.TRACK
+                }
                 BottomTab.TRACK -> TrackOrderScreen(
                     initialSearchQuery = trackSearchQuery
                 )
                 BottomTab.SETTINGS -> SettingsScreen(
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
                     onLogoutClicked = onLogout
                 )
             }
@@ -90,6 +89,6 @@ fun MainScreen(
 @Composable
 fun MainScreenPreview() {
     LegaciesScreenPrintersAPKTheme {
-        MainScreen(onLogout = {})
+        MainScreen(isDarkMode = false, onLogout = {})
     }
 }

@@ -16,41 +16,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
-import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
-import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
-import com.example.legaciesscreenprintersapk.ui.auth.TextGray
-import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
 
 @Composable
 fun SettingsScreen(
-    onLogoutClicked: () -> Unit
+    isDarkMode: Boolean = true,
+    onDarkModeChange: (Boolean) -> Unit = {},
+    onLogoutClicked: () -> Unit,
 ) {
     // User profile state
     var profileName by remember { mutableStateOf("Sipho Dlamini") }
     var profilePhone by remember { mutableStateOf("+27 82 123 4567") }
     var profileEmail by remember { mutableStateOf("sipho@example.com") }
 
-    var pushNotifications by remember { mutableStateOf(true) }
-    var emailAlerts by remember { mutableStateOf(true) }
-    var darkMode by remember { mutableStateOf(true) }
+    var pushNotifications by remember { mutableStateOf(value = true) }
+    var emailAlerts by remember { mutableStateOf(value = true) }
 
-    var isHelpExpanded by remember { mutableStateOf(false) }
+    var isHelpExpanded by remember { mutableStateOf(value = false) }
 
     val context = LocalContext.current
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Column(
@@ -61,13 +56,13 @@ fun SettingsScreen(
             // Header
             Text(
                 text = "SETTINGS & USER PROFILE",
-                color = PrimaryOrange,
+                color = MaterialTheme.colorScheme.primary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Manage your profile, notifications & workshop guide",
-                color = TextGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
 
@@ -77,15 +72,15 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = PrimaryOrange)
+                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Profile Details",
-                            color = PrimaryOrange,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -96,13 +91,13 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = profileName,
                         onValueChange = { profileName = it },
-                        label = { Text("Full Name", color = TextGray) },
+                        label = { Text("Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -112,13 +107,13 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = profilePhone,
                         onValueChange = { profilePhone = it },
-                        label = { Text("Contact Number", color = TextGray) },
+                        label = { Text("Contact Number", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -128,13 +123,13 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = profileEmail,
                         onValueChange = { profileEmail = it },
-                        label = { Text("Email Address", color = TextGray) },
+                        label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -149,11 +144,11 @@ fun SettingsScreen(
                                 Toast.makeText(context, "Profile details updated successfully!", Toast.LENGTH_SHORT).show()
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "SAVE PROFILE CHANGES", color = TextWhite, fontWeight = FontWeight.Bold)
+                        Text(text = "SAVE PROFILE CHANGES", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -164,12 +159,12 @@ fun SettingsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "App Settings & Notifications",
-                        color = PrimaryOrange,
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -181,11 +176,18 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Order Status Push Notifications", color = TextWhite, fontSize = 14.sp)
+                        Text(text = "Order Status Push Notifications", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Switch(
                             checked = pushNotifications,
                             onCheckedChange = { pushNotifications = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryOrange)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
 
@@ -196,11 +198,18 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Low Stock & Promotion Alerts", color = TextWhite, fontSize = 14.sp)
+                        Text(text = "Low Stock & Promotion Alerts", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Switch(
                             checked = emailAlerts,
                             onCheckedChange = { emailAlerts = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryOrange)
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
 
@@ -211,11 +220,18 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Dark Theme Mode", color = TextWhite, fontSize = 14.sp)
+                        Text(text = "Dark Theme Mode", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Switch(
-                            checked = darkMode,
-                            onCheckedChange = { darkMode = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryOrange)
+                            checked = isDarkMode,
+                            onCheckedChange = { onDarkModeChange(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
@@ -229,7 +245,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { isHelpExpanded = !isHelpExpanded },
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -239,14 +255,14 @@ fun SettingsScreen(
                     ) {
                         Text(
                             text = "Help & Documentation",
-                            color = PrimaryOrange,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Icon(
                             imageVector = if (isHelpExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = "Expand",
-                            tint = PrimaryOrange
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -254,14 +270,14 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(top = 12.dp)) {
                             Text(
                                 text = "Walk-in Jobs vs Remote Orders:",
-                                color = TextWhite,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Remote orders allow uploading design files directly from mobile. Walk-in jobs can be placed at our counter and tracked using your order reference.",
-                                color = TextGray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
 
@@ -269,14 +285,14 @@ fun SettingsScreen(
 
                             Text(
                                 text = "Order Collection Guidelines:",
-                                color = TextWhite,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Once your order reaches Stage 4 (Ready for Collection), visit our main counter between 08:00 and 17:00 Mon-Fri. Present your Order ID or contact phone number.",
-                                color = TextGray,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 12.sp
                             )
                         }
@@ -289,13 +305,13 @@ fun SettingsScreen(
             // Logout Button
             Button(
                 onClick = onLogoutClicked,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text(text = "SIGN OUT / LOGOUT", color = TextWhite, fontWeight = FontWeight.Bold)
+                Text(text = "SIGN OUT / LOGOUT", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -305,6 +321,6 @@ fun SettingsScreen(
 @Composable
 fun SettingsScreenPreview() {
     LegaciesScreenPrintersAPKTheme {
-        SettingsScreen(onLogoutClicked = {})
+        SettingsScreen { }
     }
 }

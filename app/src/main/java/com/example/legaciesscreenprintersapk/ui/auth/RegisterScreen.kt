@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -38,9 +38,9 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(value = false) }
+    var confirmPasswordVisible by remember { mutableStateOf(value = false) }
+    var isLoading by remember { mutableStateOf(value = false) }
 
     var nameError by remember { mutableStateOf<String?>(null) }
     var phoneError by remember { mutableStateOf<String?>(null) }
@@ -54,7 +54,7 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -63,7 +63,7 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -73,7 +73,7 @@ fun RegisterScreen(
             ) {
                 Text(
                     text = "LEGACIES SCREEN PRINTERS",
-                    color = PrimaryOrange,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -82,7 +82,7 @@ fun RegisterScreen(
 
                 Text(
                     text = "Create Customer Account",
-                    color = TextWhite,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp
                 )
 
@@ -95,20 +95,20 @@ fun RegisterScreen(
                         name = it
                         if (nameError != null) nameError = null
                     },
-                    label = { Text("Full Name", color = TextGray) },
+                    label = { Text("Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = nameError != null,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 nameError?.let {
-                    Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
+                    Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -120,21 +120,21 @@ fun RegisterScreen(
                         phone = it
                         if (phoneError != null) phoneError = null
                     },
-                    label = { Text("Contact Number", color = TextGray) },
+                    label = { Text("Contact Number", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = phoneError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 phoneError?.let {
-                    Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
+                    Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -146,21 +146,21 @@ fun RegisterScreen(
                         email = it
                         if (emailError != null) emailError = null
                     },
-                    label = { Text("Email Address", color = TextGray) },
+                    label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = emailError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 emailError?.let {
-                    Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
+                    Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -172,7 +172,7 @@ fun RegisterScreen(
                         password = it
                         if (passwordError != null) passwordError = null
                     },
-                    label = { Text("Password", color = TextGray) },
+                    label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = passwordError != null,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -181,22 +181,22 @@ fun RegisterScreen(
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                 contentDescription = "Toggle password visibility",
-                                tint = PrimaryOrange
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 passwordError?.let {
-                    Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
+                    Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -208,7 +208,7 @@ fun RegisterScreen(
                         confirmPassword = it
                         if (confirmPasswordError != null) confirmPasswordError = null
                     },
-                    label = { Text("Confirm Password", color = TextGray) },
+                    label = { Text("Confirm Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = confirmPasswordError != null,
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -217,22 +217,22 @@ fun RegisterScreen(
                             Icon(
                                 imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                 contentDescription = "Toggle confirm password visibility",
-                                tint = PrimaryOrange
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 confirmPasswordError?.let {
-                    Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
+                    Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -274,7 +274,7 @@ fun RegisterScreen(
                                 try {
                                     val api = ApiService.create()
                                     val response = api.registerUser(RegisterRequest(name, phone, email, hashedPassword))
-                                    if (response.isSuccessful && response.body()?.success == true) {
+                                    if (response.isSuccessful && (response.body()?.success == true)) {
                                         MockRepository.registerUser(name, phone, email, hashedPassword)
                                         Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
                                         onRegisterSuccess()
@@ -294,23 +294,23 @@ fun RegisterScreen(
                         }
                     },
                     enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
-                        Text(text = "REGISTER ACCOUNT", color = TextWhite, fontWeight = FontWeight.Bold)
+                        Text(text = "REGISTER ACCOUNT", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(onClick = { onNavigateToLogin() }) {
-                    Text(text = "Already have an account? Sign In", color = TextGray, fontSize = 12.sp)
+                    Text(text = "Already have an account? Sign In", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
         }

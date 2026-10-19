@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,22 +31,15 @@ import com.example.legaciesscreenprintersapk.util.GoogleAuthHelper
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
 import kotlinx.coroutines.launch
 
-val DarkBackground = Color(0xFF121212)
-val CardBackground = Color(0xFF1E1E1E)
-val PrimaryOrange = Color(0xFFFF6F00)
-val TextWhite = Color(0xFFFFFFFF)
-val TextGray = Color(0xFFA0A0A0)
-val ErrorRed = Color(0xFFCF6679)
-
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(value = false) }
+    var isLoading by remember { mutableStateOf(value = false) }
 
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
@@ -58,7 +50,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -67,7 +59,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardBackground)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -77,17 +69,17 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "LEGACIES SCREEN PRINTERS",
-                    color = PrimaryOrange,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "Customer Portal Sign In",
-                    color = TextWhite,
-                    fontSize = 14.sp
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 14.sp,
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -99,23 +91,23 @@ fun LoginScreen(
                         email = it
                         if (emailError != null) emailError = null
                     },
-                    label = { Text("Email Address", color = TextGray) },
+                    label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = emailError != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 emailError?.let { err ->
                     Text(
                         text = err,
-                        color = ErrorRed,
+                        color = MaterialTheme.colorScheme.error,
                         fontSize = 11.sp,
                         modifier = Modifier
                             .align(Alignment.Start)
@@ -132,7 +124,7 @@ fun LoginScreen(
                         password = it
                         if (passwordError != null) passwordError = null
                     },
-                    label = { Text("Password", color = TextGray) },
+                    label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
                     isError = passwordError != null,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -141,24 +133,24 @@ fun LoginScreen(
                             Icon(
                                 imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                 contentDescription = "Toggle password visibility",
-                                tint = PrimaryOrange
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryOrange,
-                        unfocusedBorderColor = TextGray,
-                        errorBorderColor = ErrorRed,
-                        focusedTextColor = TextWhite,
-                        unfocusedTextColor = TextWhite
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        errorBorderColor = MaterialTheme.colorScheme.error,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 passwordError?.let { err ->
                     Text(
                         text = err,
-                        color = ErrorRed,
+                        color = MaterialTheme.colorScheme.error,
                         fontSize = 11.sp,
                         modifier = Modifier
                             .align(Alignment.Start)
@@ -192,12 +184,12 @@ fun LoginScreen(
                                     val apiService = ApiService.create()
                                     val response = apiService.loginUser(LoginRequest(email, hashedPassword))
                                     isLoading = false
-                                    if (response.isSuccessful && response.body()?.success == true) {
+                                    if (response.isSuccessful && (response.body()?.success == true)) {
                                         Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
                                         onLoginSuccess()
                                     } else {
                                         val mockUser = MockRepository.loginUser(email, hashedPassword)
-                                        if (mockUser != null || email.isNotEmpty()) {
+                                        if (mockUser != null || (email.isNotEmpty())) {
                                             Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                             onLoginSuccess()
                                         } else {
@@ -213,18 +205,18 @@ fun LoginScreen(
                         }
                     },
                     enabled = !isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(color = TextWhite, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                     } else {
                         Text(
                             text = "SIGN IN",
-                            color = TextWhite,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -245,26 +237,26 @@ fun LoginScreen(
                                 onError = { msg ->
                                     Toast.makeText(context, "SSO Sign-in: $msg", Toast.LENGTH_SHORT).show()
                                     onLoginSuccess()
-                                }
+                                },
                             )
                         }
                     },
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, PrimaryOrange),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Text(text = "Sign in with Google (SSO)", color = TextWhite)
+                    Text(text = "Sign in with Google (SSO)", color = MaterialTheme.colorScheme.onSurface)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Link to Register
-                TextButton(onClick = { onNavigateToRegister() }) {
+                TextButton(onClick = onNavigateToRegister) {
                     Text(
                         text = "Don't have an account? Register",
-                        color = TextGray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 }
@@ -279,7 +271,7 @@ fun LoginScreenPreview() {
     LegaciesScreenPrintersAPKTheme {
         LoginScreen(
             onLoginSuccess = {},
-            onNavigateToRegister = {}
+            onNavigateToRegister = {},
         )
     }
 }

@@ -5,7 +5,7 @@ data class User(
     val name: String,
     val email: String,
     val phone: String,
-    val passwordHash: String
+    val passwordHash: String,
 )
 
 data class VinylMaterial(
@@ -14,7 +14,7 @@ data class VinylMaterial(
     val unitPrice: Double,
     val description: String,
     val colors: List<String> = emptyList(),
-    val inStockMeters: Double = 100.0
+    val inStockMeters: Double = 100.0,
 )
 
 data class OrderItem(
@@ -24,7 +24,7 @@ data class OrderItem(
     val artworkUri: String? = null,
     val quantity: Int,
     val unitPrice: Double,
-    val totalPrice: Double = unitPrice * quantity
+    val totalPrice: Double = unitPrice * quantity,
 )
 
 data class Order(
@@ -38,7 +38,7 @@ data class Order(
     val statusText: String,
     val estimatedCompletion: String,
     val createdAt: String,
-    val isRemoteOrder: Boolean = true
+    val isRemoteOrder: Boolean = true,
 )
 
 data class TrackingStage(
@@ -46,5 +46,5 @@ data class TrackingStage(
     val title: String,
     val description: String,
     val isCompleted: Boolean,
-    val isCurrent: Boolean
+    val isCurrent: Boolean,
 )

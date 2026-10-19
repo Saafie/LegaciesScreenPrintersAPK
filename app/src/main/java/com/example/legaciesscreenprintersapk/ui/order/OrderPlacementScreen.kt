@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,12 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.legaciesscreenprintersapk.data.MockRepository
 import com.example.legaciesscreenprintersapk.data.OrderItem
-import com.example.legaciesscreenprintersapk.ui.auth.CardBackground
-import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
-import com.example.legaciesscreenprintersapk.ui.auth.ErrorRed
-import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
-import com.example.legaciesscreenprintersapk.ui.auth.TextGray
-import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
 
@@ -89,7 +82,7 @@ fun OrderPlacementScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Column(
@@ -100,13 +93,13 @@ fun OrderPlacementScreen(
             // Screen Header
             Text(
                 text = "ORDER PLACEMENT",
-                color = PrimaryOrange,
+                color = MaterialTheme.colorScheme.primary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "Submit Print & Vinyl Cutting Specifications",
-                color = TextGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
 
@@ -116,12 +109,12 @@ fun OrderPlacementScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Customer Information",
-                        color = PrimaryOrange,
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -134,19 +127,19 @@ fun OrderPlacementScreen(
                             clientName = it
                             if (clientNameError != null) clientNameError = null
                         },
-                        label = { Text("Full Name", color = TextGray) },
+                        label = { Text("Full Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         isError = clientNameError != null,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            errorBorderColor = ErrorRed,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            errorBorderColor = MaterialTheme.colorScheme.error,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    clientNameError?.let { Text(it, color = ErrorRed, fontSize = 11.sp) }
+                    clientNameError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -157,20 +150,20 @@ fun OrderPlacementScreen(
                             clientPhone = it
                             if (clientPhoneError != null) clientPhoneError = null
                         },
-                        label = { Text("Contact Number", color = TextGray) },
+                        label = { Text("Contact Number", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         isError = clientPhoneError != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            errorBorderColor = ErrorRed,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            errorBorderColor = MaterialTheme.colorScheme.error,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    clientPhoneError?.let { Text(it, color = ErrorRed, fontSize = 11.sp) }
+                    clientPhoneError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -181,20 +174,20 @@ fun OrderPlacementScreen(
                             clientEmail = it
                             if (clientEmailError != null) clientEmailError = null
                         },
-                        label = { Text("Email Address", color = TextGray) },
+                        label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         isError = clientEmailError != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryOrange,
-                            unfocusedBorderColor = TextGray,
-                            errorBorderColor = ErrorRed,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            errorBorderColor = MaterialTheme.colorScheme.error,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    clientEmailError?.let { Text(it, color = ErrorRed, fontSize = 11.sp) }
+                    clientEmailError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
                 }
             }
 
@@ -204,12 +197,12 @@ fun OrderPlacementScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Order Specifications (Multi-Design)",
-                        color = PrimaryOrange,
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -229,7 +222,7 @@ fun OrderPlacementScreen(
                         if (index < designRows.size - 1) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 12.dp),
-                                color = TextGray.copy(alpha = 0.3f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                             )
                         }
                     }
@@ -250,9 +243,9 @@ fun OrderPlacementScreen(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Design", tint = PrimaryOrange)
+                        Icon(Icons.Default.Add, contentDescription = "Add Design", tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("+ ADD ANOTHER DESIGN", color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                        Text("+ ADD ANOTHER DESIGN", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -263,7 +256,7 @@ fun OrderPlacementScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -274,10 +267,10 @@ fun OrderPlacementScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Running Order Total:", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Running Order Total:", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Text(
                             text = "R %.2f".format(runningTotal.value),
-                            color = PrimaryOrange,
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -350,13 +343,13 @@ fun OrderPlacementScreen(
                                 onOrderSubmittedSuccessfully(createdOrder.id)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
-                        Text(text = "SUBMIT PRINT ORDER", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(text = "SUBMIT PRINT ORDER", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }
@@ -395,10 +388,10 @@ fun DesignSpecificationRowItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Design #${index + 1}", color = PrimaryOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(text = "Design #${index + 1}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             if (onDeleteRow != null) {
                 IconButton(onClick = onDeleteRow) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete Row", tint = ErrorRed)
+                    Icon(Icons.Default.Delete, contentDescription = "Delete Row", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -411,19 +404,19 @@ fun DesignSpecificationRowItem(
             onValueChange = {
                 onRowChange(rowState.copy(designName = it, designNameError = null))
             },
-            label = { Text("Design Name / Reference", color = TextGray) },
+            label = { Text("Design Name / Reference", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             singleLine = true,
             isError = rowState.designNameError != null,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PrimaryOrange,
-                unfocusedBorderColor = TextGray,
-                errorBorderColor = ErrorRed,
-                focusedTextColor = TextWhite,
-                unfocusedTextColor = TextWhite
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             ),
             modifier = Modifier.fillMaxWidth()
         )
-        rowState.designNameError?.let { Text(it, color = ErrorRed, fontSize = 11.sp) }
+        rowState.designNameError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -437,29 +430,29 @@ fun DesignSpecificationRowItem(
                 value = rowState.selectedMaterialName,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Material Selection", color = TextGray) },
+                label = { Text("Material Selection", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 trailingIcon = {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown", tint = PrimaryOrange)
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown", tint = MaterialTheme.colorScheme.primary)
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryOrange,
-                    unfocusedBorderColor = TextGray,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth()
             )
 
             ExposedDropdownMenu(
                 expanded = expandedMaterialDropdown,
                 onDismissRequest = { expandedMaterialDropdown = false },
-                modifier = Modifier.background(CardBackground)
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
                 materials.forEach { matName ->
                     DropdownMenuItem(
-                        text = { Text(text = matName, color = TextWhite) },
+                        text = { Text(text = matName, color = MaterialTheme.colorScheme.onSurface) },
                         onClick = {
                             onRowChange(rowState.copy(selectedMaterialName = matName))
                             expandedMaterialDropdown = false
@@ -485,16 +478,16 @@ fun DesignSpecificationRowItem(
                         onRowChange(rowState.copy(quantityString = input, quantityError = null))
                     }
                 },
-                label = { Text("Quantity", color = TextGray) },
+                label = { Text("Quantity", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
                 isError = rowState.quantityError != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryOrange,
-                    unfocusedBorderColor = TextGray,
-                    errorBorderColor = ErrorRed,
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    errorBorderColor = MaterialTheme.colorScheme.error,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier.weight(1f)
             )
@@ -504,11 +497,11 @@ fun DesignSpecificationRowItem(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(text = "Rate: R %.2f".format(currentRate), color = TextGray, fontSize = 12.sp)
-                Text(text = "Subtotal: R %.2f".format(rowSubtotal), color = PrimaryOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(text = "Rate: R %.2f".format(currentRate), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Text(text = "Subtotal: R %.2f".format(rowSubtotal), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
-        rowState.quantityError?.let { Text(it, color = ErrorRed, fontSize = 11.sp) }
+        rowState.quantityError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -518,11 +511,11 @@ fun DesignSpecificationRowItem(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.UploadFile, contentDescription = "Upload Artwork", tint = TextWhite)
+            Icon(Icons.Default.UploadFile, contentDescription = "Upload Artwork", tint = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = if (rowState.artworkUri != null) "Artwork Uploaded: ${rowState.artworkUri?.lastPathSegment ?: "Selected"}" else "Upload Artwork File",
-                color = TextWhite,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 12.sp
             )
         }

@@ -1,7 +1,6 @@
 package com.example.legaciesscreenprintersapk.ui.remote
 
 import com.example.legaciesscreenprintersapk.data.Order
-import com.example.legaciesscreenprintersapk.data.OrderItem
 import com.example.legaciesscreenprintersapk.data.VinylMaterial
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,14 +15,14 @@ import java.util.concurrent.TimeUnit
 
 data class LoginRequest(
     val email: String,
-    val passwordHash: String
+    val passwordHash: String,
 )
 
 data class RegisterRequest(
     val name: String,
     val phone: String,
     val email: String,
-    val passwordHash: String
+    val passwordHash: String,
 )
 
 data class AuthResponse(
@@ -31,7 +30,7 @@ data class AuthResponse(
     val message: String,
     val token: String? = null,
     val userId: String? = null,
-    val userName: String? = null
+    val userName: String? = null,
 )
 
 data class CreateOrderRequest(
@@ -39,7 +38,7 @@ data class CreateOrderRequest(
     val clientPhone: String,
     val clientEmail: String,
     val items: List<OrderItemDto>,
-    val isRemoteOrder: Boolean = true
+    val isRemoteOrder: Boolean = true,
 )
 
 data class OrderItemDto(
@@ -47,14 +46,14 @@ data class OrderItemDto(
     val materialName: String,
     val artworkUri: String?,
     val quantity: Int,
-    val unitPrice: Double
+    val unitPrice: Double,
 )
 
 data class OrderResponse(
     val success: Boolean,
     val message: String,
     val orderId: String? = null,
-    val order: Order? = null
+    val order: Order? = null,
 )
 
 interface ApiService {
