@@ -215,12 +215,16 @@ fun LoginScreen(
 
                                     if (response.isSuccessful && response.body() != null && (response.body()?.userId != null || response.body()?.email != null)) {
                                         val body = response.body()!!
+                                        val userPhone = body.phoneNumber
+                                            ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
+                                            ?: "+27 82 123 4567"
                                         SessionManager.saveSession(
                                             context = context,
                                             userId = body.userId ?: 1,
                                             fullName = body.fullName ?: "Customer User",
                                             email = body.email ?: trimmedEmail,
                                             role = body.role ?: "Customer",
+                                            phone = userPhone,
                                             token = body.token
                                         )
                                         Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
@@ -229,13 +233,17 @@ fun LoginScreen(
                                         // Server returned non-200 OK (e.g. 404/401 because user is registered locally): check local accounts & seeded users
                                         val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
                                         val mockResult = repository.authenticate(trimmedEmail, password)
+                                        val userPhone = localAccount?.phoneNumber
+                                            ?: mockResult?.phoneNumber
+                                            ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
+                                            ?: "+27 82 123 4567"
 
                                         val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
                                             com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
                                                 userId = mockResult.userId,
                                                 fullName = mockResult.fullName ?: "Customer User",
                                                 email = mockResult.email ?: trimmedEmail,
-                                                phoneNumber = "+27 82 123 4567",
+                                                phoneNumber = userPhone,
                                                 role = mockResult.role ?: "Customer"
                                             )
                                         } else null
@@ -260,13 +268,17 @@ fun LoginScreen(
                                     // Network error/unreachable: Verify against SessionManager local persistent users & MockDataRepository seeded users
                                     val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
                                     val mockResult = repository.authenticate(trimmedEmail, password)
+                                    val userPhone = localAccount?.phoneNumber
+                                        ?: mockResult?.phoneNumber
+                                        ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
+                                        ?: "+27 82 123 4567"
 
                                     val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
                                         com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
                                             userId = mockResult.userId,
                                             fullName = mockResult.fullName ?: "Customer User",
                                             email = mockResult.email ?: trimmedEmail,
-                                            phoneNumber = "+27 82 123 4567",
+                                            phoneNumber = userPhone,
                                             role = mockResult.role ?: "Customer"
                                         )
                                     } else null

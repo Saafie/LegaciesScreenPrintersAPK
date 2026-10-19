@@ -27,7 +27,8 @@ data class AuthResponse(
     @SerializedName("fullName") val fullName: String? = null,
     @SerializedName("email") val email: String? = null,
     @SerializedName("role") val role: String? = null,
-    @SerializedName("token") val token: String? = null
+    @SerializedName("token") val token: String? = null,
+    @SerializedName("phoneNumber") val phoneNumber: String? = null
 )
 
 data class MaterialDto(
