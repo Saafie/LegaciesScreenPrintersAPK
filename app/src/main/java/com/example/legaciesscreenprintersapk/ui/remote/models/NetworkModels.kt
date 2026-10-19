@@ -79,7 +79,8 @@ data class OrderTrackingDto(
     @SerializedName("status") val status: String,
     @SerializedName("totalAmount") val totalAmount: Double,
     @SerializedName("createdAt") val createdAt: String,
-    @SerializedName("items") val items: List<OrderItemDto>
+    @SerializedName("items") val items: List<OrderItemDto>,
+    @SerializedName("userId") val userId: Int? = null
 )
 
 data class UpdateStatusRequest(

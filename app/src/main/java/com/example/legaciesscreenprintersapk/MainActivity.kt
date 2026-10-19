@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -20,6 +21,7 @@ import com.example.legaciesscreenprintersapk.ui.auth.LoginScreen
 import com.example.legaciesscreenprintersapk.ui.auth.RegisterScreen
 import com.example.legaciesscreenprintersapk.ui.main.MainScreen
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
+import com.example.legaciesscreenprintersapk.util.SessionManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,17 +48,20 @@ fun LegaciesAppNavigation(
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     val navController = rememberNavController()
+    val startDestination = remember { if (sessionManager.isLoggedIn()) "main" else "login" }
 
     NavHost(
         navController = navController,
-        startDestination = "login",
+        startDestination = startDestination,
     ) {
         composable("login") {
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToRegister = {
@@ -69,7 +74,7 @@ fun LegaciesAppNavigation(
             RegisterScreen(
                 onRegisterSuccess = {
                     navController.navigate("main") {
-                        popUpTo("register") { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
@@ -83,8 +88,9 @@ fun LegaciesAppNavigation(
                 isDarkMode = isDarkMode,
                 onDarkModeChange = onDarkModeChange,
             ) {
+                sessionManager.clearSession()
                 navController.navigate("login") {
-                    popUpTo("main") { inclusive = true }
+                    popUpTo(0) { inclusive = true }
                 }
             }
         }

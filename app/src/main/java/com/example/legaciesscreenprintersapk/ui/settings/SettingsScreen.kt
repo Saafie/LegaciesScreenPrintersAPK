@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
+import com.example.legaciesscreenprintersapk.util.SessionManager
 
 @Composable
 fun SettingsScreen(
@@ -30,17 +31,26 @@ fun SettingsScreen(
     onDarkModeChange: (Boolean) -> Unit = {},
     onLogoutClicked: () -> Unit,
 ) {
-    // User profile state
-    var profileName by remember { mutableStateOf("Sipho Dlamini") }
-    var profilePhone by remember { mutableStateOf("+27 82 123 4567") }
-    var profileEmail by remember { mutableStateOf("sipho@example.com") }
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+    // User profile state initialized from active SessionManager
+    var profileName by remember { mutableStateOf(sessionManager.getUserFullName()) }
+    var profilePhone by remember { mutableStateOf(sessionManager.getUserPhone()) }
+    var profileEmail by remember { mutableStateOf(sessionManager.getUserEmail()) }
+    var profileRole by remember { mutableStateOf(sessionManager.getUserRole()) }
+
+    LaunchedEffect(Unit) {
+        profileName = sessionManager.getUserFullName()
+        profilePhone = sessionManager.getUserPhone()
+        profileEmail = sessionManager.getUserEmail()
+        profileRole = sessionManager.getUserRole()
+    }
 
     var pushNotifications by remember { mutableStateOf(value = true) }
     var emailAlerts by remember { mutableStateOf(value = true) }
 
     var isHelpExpanded by remember { mutableStateOf(value = false) }
-
-    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -105,6 +115,22 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
+                        value = profileEmail,
+                        onValueChange = { profileEmail = it },
+                        label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
                         value = profilePhone,
                         onValueChange = { profilePhone = it },
                         label = { Text("Contact Number", color = MaterialTheme.colorScheme.onSurfaceVariant) },
@@ -121,9 +147,10 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
-                        value = profileEmail,
-                        onValueChange = { profileEmail = it },
-                        label = { Text("Email Address", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        value = profileRole,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Account Role", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -141,6 +168,14 @@ fun SettingsScreen(
                             if (!SecurityUtils.isValidEmail(profileEmail)) {
                                 Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
                             } else {
+                                sessionManager.saveUserSession(
+                                    userId = sessionManager.getUserId(),
+                                    fullName = profileName,
+                                    email = profileEmail,
+                                    phone = profilePhone,
+                                    role = profileRole,
+                                    token = sessionManager.getAuthToken()
+                                )
                                 Toast.makeText(context, "Profile details updated successfully!", Toast.LENGTH_SHORT).show()
                             }
                         },
@@ -304,7 +339,10 @@ fun SettingsScreen(
 
             // Logout Button
             Button(
-                onClick = onLogoutClicked,
+                onClick = {
+                    sessionManager.clearSession()
+                    onLogoutClicked()
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier

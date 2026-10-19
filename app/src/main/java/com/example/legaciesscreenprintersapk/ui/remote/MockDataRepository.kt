@@ -36,7 +36,15 @@ class MockDataRepository(
         // Seeded User Passwords Hashed (SHA-256 with Salt)
         private val userPasswordHashes = mutableMapOf(
             "sipho@example.com" to SecurityUtils.hashPassword("Password123"),
-            "jessica@example.com" to SecurityUtils.hashPassword("SecurePass2026")
+            "jessica@example.com" to SecurityUtils.hashPassword("SecurePass2026"),
+            "david@khumalo.co.za" to SecurityUtils.hashPassword("Password123"),
+            "amanda@designhub.co.za" to SecurityUtils.hashPassword("Password123"),
+            "michael@maraisprints.com" to SecurityUtils.hashPassword("Password123"),
+            "nomvula@zungubranding.co.za" to SecurityUtils.hashPassword("Password123"),
+            "keagan@bothasports.co.za" to SecurityUtils.hashPassword("Password123"),
+            "info@thabostudio.com" to SecurityUtils.hashPassword("Password123"),
+            "lisa@vdm-events.co.za" to SecurityUtils.hashPassword("Password123"),
+            "zubair@patelautowrap.co.za" to SecurityUtils.hashPassword("Password123")
         )
 
         // --- SEEDED DATA: 10 VINYL & PRINT MATERIALS ---
@@ -69,7 +77,8 @@ class MockDataRepository(
                     items = listOf(
                         OrderItemDto(101, 1, "Legacies Staff Polo Logo", null, 1, "10oz Vinyl (Black, Gold)", 2, 120.00, 240.00),
                         OrderItemDto(102, 1, "Promo Event Banner", null, 4, "Standard Banner Vinyl", 1, 100.00, 100.00)
-                    )
+                    ),
+                    userId = 1
                 ),
                 OrderTrackingDto(
                     orderId = 2,
@@ -81,7 +90,8 @@ class MockDataRepository(
                     createdAt = "2026-03-29 10:30",
                     items = listOf(
                         OrderItemDto(103, 2, "Gold Metallic Wall Decal", null, 3, "Matte Vinyl Gold (3m)", 3, 180.00, 540.00)
-                    )
+                    ),
+                    userId = 2
                 ),
                 OrderTrackingDto(
                     orderId = 3,
@@ -93,7 +103,8 @@ class MockDataRepository(
                     createdAt = "2026-03-28 14:00",
                     items = listOf(
                         OrderItemDto(104, 3, "Glossy White Storefront Signs", null, 2, "Gloss Vinyl White (6m)", 2, 150.00, 300.00)
-                    )
+                    ),
+                    userId = 3
                 ),
                 OrderTrackingDto(
                     orderId = 4,
@@ -105,7 +116,8 @@ class MockDataRepository(
                     createdAt = "2026-03-30 08:00",
                     items = listOf(
                         OrderItemDto(105, 4, "Custom Music Festival Hoodies", null, 1, "10oz Vinyl (Black, Gold)", 5, 120.00, 600.00)
-                    )
+                    ),
+                    userId = 4
                 ),
                 OrderTrackingDto(
                     orderId = 5,
@@ -117,7 +129,8 @@ class MockDataRepository(
                     createdAt = "2026-03-29 11:45",
                     items = listOf(
                         OrderItemDto(106, 5, "Outdoor Flex Banners 3x1m", null, 4, "Standard Banner Vinyl", 4, 100.00, 400.00)
-                    )
+                    ),
+                    userId = 5
                 ),
                 OrderTrackingDto(
                     orderId = 6,
@@ -129,7 +142,8 @@ class MockDataRepository(
                     createdAt = "2026-03-29 13:20",
                     items = listOf(
                         OrderItemDto(107, 6, "Matte Gold Luxury Packaging Stickers", null, 3, "Matte Vinyl Gold (3m)", 2, 180.00, 360.00)
-                    )
+                    ),
+                    userId = 6
                 ),
                 OrderTrackingDto(
                     orderId = 7,
@@ -141,7 +155,8 @@ class MockDataRepository(
                     createdAt = "2026-03-27 16:00",
                     items = listOf(
                         OrderItemDto(108, 7, "Sports Team Jersey Names", null, 1, "10oz Vinyl (Black, Gold)", 10, 120.00, 1200.00)
-                    )
+                    ),
+                    userId = 7
                 ),
                 OrderTrackingDto(
                     orderId = 8,
@@ -153,7 +168,8 @@ class MockDataRepository(
                     createdAt = "2026-03-30 09:30",
                     items = listOf(
                         OrderItemDto(109, 8, "Exhibition Gloss Banner", null, 2, "Gloss Vinyl White (6m)", 3, 150.00, 450.00)
-                    )
+                    ),
+                    userId = 8
                 ),
                 OrderTrackingDto(
                     orderId = 9,
@@ -165,7 +181,8 @@ class MockDataRepository(
                     createdAt = "2026-03-29 15:10",
                     items = listOf(
                         OrderItemDto(110, 9, "Gold Foil Wedding Welcome Sign", null, 3, "Matte Vinyl Gold (3m)", 1, 180.00, 180.00)
-                    )
+                    ),
+                    userId = 9
                 ),
                 OrderTrackingDto(
                     orderId = 10,
@@ -177,7 +194,8 @@ class MockDataRepository(
                     createdAt = "2026-03-29 12:00",
                     items = listOf(
                         OrderItemDto(111, 10, "Custom Fleet Vehicle Decals", null, 2, "Gloss Vinyl White (6m)", 4, 150.00, 600.00)
-                    )
+                    ),
+                    userId = 10
                 )
             )
         )
@@ -188,11 +206,24 @@ class MockDataRepository(
 
     // --- API METHODS WITH AUTOMATIC NETWORK FALLBACK ---
 
+    // Method for strict offline credential verification against seeded users and SHA-256 salted password hashes
+    fun verifyOfflineCredentials(email: String, rawPassword: String): AuthResponse? {
+        val trimmedEmail = email.trim()
+        val user = seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) } ?: return null
+        val hashedPass = SecurityUtils.hashPassword(rawPassword)
+        val expectedHash = userPasswordHashes[user.email.lowercase()] ?: userPasswordHashes[trimmedEmail.lowercase()]
+
+        return if (expectedHash != null && expectedHash == hashedPass) {
+            AuthResponse(user.userId, user.fullName, user.email, user.role, "mock_jwt_token_${user.userId}")
+        } else {
+            null
+        }
+    }
+
     suspend fun login(email: String, rawPassword: String): AuthResponse {
         if (!forceOfflineMode) {
             try {
-                val hashedPass = SecurityUtils.hashPassword(rawPassword)
-                val response = apiService.login(AuthRequest(email, hashedPass))
+                val response = apiService.login(AuthRequest(email.trim(), rawPassword))
                 if (response.isSuccessful && response.body() != null) {
                     return response.body()!!
                 }
@@ -201,18 +232,8 @@ class MockDataRepository(
             }
         }
 
-        // Mock Fallback
-        val user = seededUsers.find { it.email.equals(email, ignoreCase = true) }
-        val hashedPass = SecurityUtils.hashPassword(rawPassword)
-        val expectedHash = userPasswordHashes[email.lowercase()]
-
-        return if (user != null && (expectedHash == null || expectedHash == hashedPass)) {
-            AuthResponse(user.userId, user.fullName, user.email, user.role, "mock_jwt_token_${user.userId}")
-        } else if (email.isNotEmpty()) {
-            AuthResponse(999, "Legacies Customer", email, "Customer", "mock_fallback_token_999")
-        } else {
-            AuthResponse(null, null, null, null, null)
-        }
+        // Strict Mock Fallback Verification
+        return verifyOfflineCredentials(email, rawPassword) ?: AuthResponse(null, null, null, null, null)
     }
 
     suspend fun register(fullName: String, email: String, phone: String, rawPassword: String): AuthResponse {
@@ -294,7 +315,8 @@ class MockDataRepository(
             status = "Stage 1: Order Received & Verified",
             totalAmount = totalAmount,
             createdAt = dateFormat.format(Date()),
-            items = orderItems
+            items = orderItems,
+            userId = request.userId
         )
 
         seededOrders.add(0, newOrderTracking)

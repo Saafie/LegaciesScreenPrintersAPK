@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,7 @@ import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
 import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
 import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
+import com.example.legaciesscreenprintersapk.util.SessionManager
 
 @Composable
 fun HomeScreen(
@@ -198,21 +200,31 @@ fun QuickActionCard(
 fun OrderHistoryDialog(onDismiss: () -> Unit) {
     var ordersList by remember { mutableStateOf<List<OrderTrackingDto>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     val repository = remember { MockDataRepository() }
 
+    val currentUserId = sessionManager.getUserId()
+    val currentUserFullName = sessionManager.getUserFullName()
+
     LaunchedEffect(Unit) {
-        try {
+        val fetchedOrders = try {
             val response = RetrofitClient.apiService.getAllOrders()
-            isLoading = false
             if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                ordersList = response.body()!!
+                response.body()!!
             } else {
-                ordersList = repository.getAllOrders()
+                repository.getAllOrders()
             }
         } catch (_: Exception) {
-            isLoading = false
-            ordersList = repository.getAllOrders()
+            repository.getAllOrders()
         }
+
+        // Scope order history strictly to logged-in user
+        ordersList = fetchedOrders.filter { order ->
+            order.userId == currentUserId || (order.userId == null && order.clientName.equals(currentUserFullName, ignoreCase = true))
+        }
+        isLoading = false
     }
 
     AlertDialog(
@@ -230,6 +242,19 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PrimaryOrange)
+                }
+            } else if (ordersList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No past orders found for your account.",
+                        color = TextGray,
+                        fontSize = 13.sp
+                    )
                 }
             } else {
                 LazyColumn(

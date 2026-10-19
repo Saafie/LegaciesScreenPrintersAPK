@@ -72,8 +72,12 @@ fun OrderPlacementScreen(
     var materialsList by remember { mutableStateOf<List<MaterialDto>>(emptyList()) }
     var isSubmitting by remember { mutableStateOf(false) }
 
-    // Fetch live materials from Retrofit API on screen load
+    // Fetch live materials and re-sync user session info on screen load
     LaunchedEffect(Unit) {
+        clientName = sessionManager.getUserFullName()
+        clientPhone = sessionManager.getUserPhone()
+        clientEmail = sessionManager.getUserEmail()
+
         try {
             val response = RetrofitClient.apiService.getMaterials()
             if (response.isSuccessful && !response.body().isNullOrEmpty()) {

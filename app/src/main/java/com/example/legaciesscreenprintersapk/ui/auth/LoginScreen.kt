@@ -52,6 +52,7 @@ fun LoginScreen(
 
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var authErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -101,10 +102,11 @@ fun LoginScreen(
                     onValueChange = {
                         email = it
                         if (emailError != null) emailError = null
+                        if (authErrorMessage != null) authErrorMessage = null
                     },
                     label = { Text("Email Address", color = TextGray) },
                     singleLine = true,
-                    isError = emailError != null,
+                    isError = emailError != null || authErrorMessage != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryOrange,
@@ -134,10 +136,11 @@ fun LoginScreen(
                     onValueChange = {
                         password = it
                         if (passwordError != null) passwordError = null
+                        if (authErrorMessage != null) authErrorMessage = null
                     },
                     label = { Text("Password", color = TextGray) },
                     singleLine = true,
-                    isError = passwordError != null,
+                    isError = passwordError != null || authErrorMessage != null,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -169,6 +172,19 @@ fun LoginScreen(
                     )
                 }
 
+                authErrorMessage?.let { err ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = err,
+                        color = ErrorRed,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(vertical = 4.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Sign In Button
@@ -176,6 +192,7 @@ fun LoginScreen(
                     onClick = {
                         emailError = null
                         passwordError = null
+                        authErrorMessage = null
 
                         var hasError = false
                         if (!SecurityUtils.isValidEmail(email)) {
@@ -190,48 +207,48 @@ fun LoginScreen(
                         if (!hasError) {
                             isLoading = true
                             scope.launch {
-                                val hashedPassword = SecurityUtils.hashPassword(password)
+                                val trimmedEmail = email.trim()
                                 try {
                                     val apiService = RetrofitClient.apiService
-                                    val response = apiService.login(AuthRequest(email, hashedPassword))
+                                    val response = apiService.login(AuthRequest(trimmedEmail, password))
                                     isLoading = false
 
                                     if (response.isSuccessful && response.body() != null) {
                                         val body = response.body()!!
-                                        sessionManager.saveUserSession(
-                                            userId = body.userId ?: 1,
-                                            fullName = body.fullName ?: "Sipho Dlamini",
-                                            email = body.email ?: email,
-                                            role = body.role ?: "Customer",
-                                            token = body.token
-                                        )
-                                        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess()
+                                        if (body.userId != null || body.email != null) {
+                                            sessionManager.saveUserSession(
+                                                userId = body.userId ?: 1,
+                                                fullName = body.fullName ?: "Customer User",
+                                                email = body.email ?: trimmedEmail,
+                                                role = body.role ?: "Customer",
+                                                token = body.token
+                                            )
+                                            Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+                                            onLoginSuccess()
+                                        } else {
+                                            authErrorMessage = "Invalid email or password"
+                                        }
                                     } else {
-                                        // Fallback to MockDataRepository
-                                        val mockResult = repository.login(email, password)
+                                        // Server returned non-200 OK (e.g. HTTP 401 Unauthorized / Invalid Credentials)
+                                        authErrorMessage = "Invalid email or password"
+                                    }
+                                } catch (_: Exception) {
+                                    isLoading = false
+                                    // Network error/unreachable: Verify against MockDataRepository seeded users
+                                    val mockResult = repository.verifyOfflineCredentials(trimmedEmail, password)
+                                    if (mockResult != null && mockResult.userId != null) {
                                         sessionManager.saveUserSession(
-                                            userId = mockResult.userId ?: 1,
-                                            fullName = mockResult.fullName ?: "Sipho Dlamini",
-                                            email = mockResult.email ?: email,
+                                            userId = mockResult.userId,
+                                            fullName = mockResult.fullName ?: "Customer User",
+                                            email = mockResult.email ?: trimmedEmail,
                                             role = mockResult.role ?: "Customer",
                                             token = mockResult.token
                                         )
                                         Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                         onLoginSuccess()
+                                    } else {
+                                        authErrorMessage = "Invalid email or password"
                                     }
-                                } catch (_: Exception) {
-                                    isLoading = false
-                                    val mockResult = repository.login(email, password)
-                                    sessionManager.saveUserSession(
-                                        userId = mockResult.userId ?: 1,
-                                        fullName = mockResult.fullName ?: "Sipho Dlamini",
-                                        email = mockResult.email ?: email,
-                                        role = mockResult.role ?: "Customer",
-                                        token = mockResult.token
-                                    )
-                                    Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess()
                                 }
                             }
                         }
