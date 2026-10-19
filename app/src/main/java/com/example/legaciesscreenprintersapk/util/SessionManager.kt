@@ -47,6 +47,74 @@ class SessionManager(context: Context) {
         fun clearSession(context: Context) {
             SessionManager(context).clearSession()
         }
+
+        fun registerAccount(
+            context: Context,
+            fullName: String,
+            email: String,
+            phone: String,
+            rawPassword: String
+        ): UserDto {
+            return SessionManager(context).registerAccount(fullName, email, phone, rawPassword)
+        }
+
+        fun verifyAccount(
+            context: Context,
+            email: String,
+            rawPassword: String
+        ): UserDto? {
+            return SessionManager(context).verifyAccount(email, rawPassword)
+        }
+    }
+
+    fun registerAccount(
+        fullName: String,
+        email: String,
+        phone: String,
+        rawPassword: String
+    ): UserDto {
+        val cleanEmail = email.trim().lowercase()
+        val passwordHash = SecurityUtils.hashPassword(rawPassword)
+        val newUserId = prefs.getInt("total_registered_users", 100) + 1
+
+        val editor = prefs.edit()
+        editor.putInt("user_id_$cleanEmail", newUserId)
+        editor.putString("user_name_$cleanEmail", fullName.trim())
+        editor.putString("user_phone_$cleanEmail", phone.trim())
+        editor.putString("user_hash_$cleanEmail", passwordHash)
+        editor.putInt("total_registered_users", newUserId)
+        editor.apply()
+
+        return UserDto(
+            userId = newUserId,
+            fullName = fullName.trim(),
+            email = cleanEmail,
+            phoneNumber = phone.trim(),
+            role = "Customer"
+        )
+    }
+
+    fun verifyAccount(
+        email: String,
+        rawPassword: String
+    ): UserDto? {
+        val cleanEmail = email.trim().lowercase()
+        val storedHash = prefs.getString("user_hash_$cleanEmail", null) ?: return null
+        val inputHash = SecurityUtils.hashPassword(rawPassword)
+
+        if (storedHash == inputHash) {
+            val userId = prefs.getInt("user_id_$cleanEmail", 1)
+            val name = prefs.getString("user_name_$cleanEmail", "Customer User") ?: "Customer User"
+            val phone = prefs.getString("user_phone_$cleanEmail", "+27 82 123 4567") ?: "+27 82 123 4567"
+            return UserDto(
+                userId = userId,
+                fullName = name,
+                email = cleanEmail,
+                phoneNumber = phone,
+                role = "Customer"
+            )
+        }
+        return null
     }
 
     fun saveUserSession(
@@ -93,6 +161,14 @@ class SessionManager(context: Context) {
     }
 
     fun clearSession() {
-        prefs.edit().clear().apply()
+        val editor = prefs.edit()
+        editor.remove(KEY_USER_ID)
+        editor.remove(KEY_FULL_NAME)
+        editor.remove(KEY_EMAIL)
+        editor.remove(KEY_PHONE)
+        editor.remove(KEY_ROLE)
+        editor.remove(KEY_TOKEN)
+        editor.putBoolean(KEY_IS_LOGGED_IN, false)
+        editor.apply()
     }
 }

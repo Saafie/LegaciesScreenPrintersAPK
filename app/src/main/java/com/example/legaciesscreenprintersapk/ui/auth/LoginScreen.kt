@@ -213,38 +213,72 @@ fun LoginScreen(
                                     val response = apiService.login(AuthRequest(trimmedEmail, password))
                                     isLoading = false
 
-                                    if (response.isSuccessful && response.body() != null) {
+                                    if (response.isSuccessful && response.body() != null && (response.body()?.userId != null || response.body()?.email != null)) {
                                         val body = response.body()!!
-                                        if (body.userId != null || body.email != null) {
+                                        SessionManager.saveSession(
+                                            context = context,
+                                            userId = body.userId ?: 1,
+                                            fullName = body.fullName ?: "Customer User",
+                                            email = body.email ?: trimmedEmail,
+                                            role = body.role ?: "Customer",
+                                            token = body.token
+                                        )
+                                        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+                                        onLoginSuccess()
+                                    } else {
+                                        // Server returned non-200 OK (e.g. 404/401 because user is registered locally): check local accounts & seeded users
+                                        val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
+                                        val mockResult = repository.authenticate(trimmedEmail, password)
+
+                                        val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
+                                            com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
+                                                userId = mockResult.userId,
+                                                fullName = mockResult.fullName ?: "Customer User",
+                                                email = mockResult.email ?: trimmedEmail,
+                                                phoneNumber = "+27 82 123 4567",
+                                                role = mockResult.role ?: "Customer"
+                                            )
+                                        } else null
+
+                                        if (authUser != null) {
                                             SessionManager.saveSession(
                                                 context = context,
-                                                userId = body.userId ?: 1,
-                                                fullName = body.fullName ?: "Customer User",
-                                                email = body.email ?: trimmedEmail,
-                                                role = body.role ?: "Customer",
-                                                token = body.token
+                                                userId = authUser.userId ?: 1,
+                                                fullName = authUser.fullName,
+                                                email = authUser.email,
+                                                role = authUser.role,
+                                                phone = authUser.phoneNumber
                                             )
-                                            Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                             onLoginSuccess()
                                         } else {
                                             authErrorMessage = "Invalid email or password. Please try again."
                                         }
-                                    } else {
-                                        // Server returned non-200 OK (e.g. HTTP 401 Unauthorized / Invalid Credentials)
-                                        authErrorMessage = "Invalid email or password. Please try again."
                                     }
                                 } catch (_: Exception) {
                                     isLoading = false
-                                    // Network error/unreachable: Verify against MockDataRepository seeded users
+                                    // Network error/unreachable: Verify against SessionManager local persistent users & MockDataRepository seeded users
+                                    val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
                                     val mockResult = repository.authenticate(trimmedEmail, password)
-                                    if (mockResult != null && mockResult.userId != null) {
-                                        SessionManager.saveSession(
-                                            context = context,
+
+                                    val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
+                                        com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
                                             userId = mockResult.userId,
                                             fullName = mockResult.fullName ?: "Customer User",
                                             email = mockResult.email ?: trimmedEmail,
-                                            role = mockResult.role ?: "Customer",
-                                            token = mockResult.token
+                                            phoneNumber = "+27 82 123 4567",
+                                            role = mockResult.role ?: "Customer"
+                                        )
+                                    } else null
+
+                                    if (authUser != null) {
+                                        SessionManager.saveSession(
+                                            context = context,
+                                            userId = authUser.userId ?: 1,
+                                            fullName = authUser.fullName,
+                                            email = authUser.email,
+                                            role = authUser.role,
+                                            phone = authUser.phoneNumber
                                         )
                                         Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                         onLoginSuccess()
