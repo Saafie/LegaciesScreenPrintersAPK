@@ -206,7 +206,6 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
     val repository = remember { MockDataRepository() }
 
     val currentUserId = sessionManager.getUserId()
-    val currentUserFullName = sessionManager.getUserFullName()
 
     LaunchedEffect(Unit) {
         val fetchedOrders = try {
@@ -222,7 +221,7 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
 
         // Scope order history strictly to logged-in user
         ordersList = fetchedOrders.filter { order ->
-            order.userId == currentUserId || (order.userId == null && order.clientName.equals(currentUserFullName, ignoreCase = true))
+            order.userId == currentUserId
         }
         isLoading = false
     }

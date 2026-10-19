@@ -216,7 +216,8 @@ fun LoginScreen(
                                     if (response.isSuccessful && response.body() != null) {
                                         val body = response.body()!!
                                         if (body.userId != null || body.email != null) {
-                                            sessionManager.saveUserSession(
+                                            SessionManager.saveSession(
+                                                context = context,
                                                 userId = body.userId ?: 1,
                                                 fullName = body.fullName ?: "Customer User",
                                                 email = body.email ?: trimmedEmail,
@@ -226,18 +227,19 @@ fun LoginScreen(
                                             Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
                                             onLoginSuccess()
                                         } else {
-                                            authErrorMessage = "Invalid email or password"
+                                            authErrorMessage = "Invalid email or password. Please try again."
                                         }
                                     } else {
                                         // Server returned non-200 OK (e.g. HTTP 401 Unauthorized / Invalid Credentials)
-                                        authErrorMessage = "Invalid email or password"
+                                        authErrorMessage = "Invalid email or password. Please try again."
                                     }
                                 } catch (_: Exception) {
                                     isLoading = false
                                     // Network error/unreachable: Verify against MockDataRepository seeded users
-                                    val mockResult = repository.verifyOfflineCredentials(trimmedEmail, password)
+                                    val mockResult = repository.authenticate(trimmedEmail, password)
                                     if (mockResult != null && mockResult.userId != null) {
-                                        sessionManager.saveUserSession(
+                                        SessionManager.saveSession(
+                                            context = context,
                                             userId = mockResult.userId,
                                             fullName = mockResult.fullName ?: "Customer User",
                                             email = mockResult.email ?: trimmedEmail,
@@ -247,7 +249,7 @@ fun LoginScreen(
                                         Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
                                         onLoginSuccess()
                                     } else {
-                                        authErrorMessage = "Invalid email or password"
+                                        authErrorMessage = "Invalid email or password. Please try again."
                                     }
                                 }
                             }

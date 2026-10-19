@@ -32,19 +32,20 @@ fun SettingsScreen(
     onLogoutClicked: () -> Unit,
 ) {
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
 
     // User profile state initialized from active SessionManager
-    var profileName by remember { mutableStateOf(sessionManager.getUserFullName()) }
-    var profilePhone by remember { mutableStateOf(sessionManager.getUserPhone()) }
-    var profileEmail by remember { mutableStateOf(sessionManager.getUserEmail()) }
-    var profileRole by remember { mutableStateOf(sessionManager.getUserRole()) }
+    val initialUser = SessionManager.getUserDetails(context)
+    var profileName by remember { mutableStateOf(initialUser.fullName) }
+    var profilePhone by remember { mutableStateOf(initialUser.phoneNumber) }
+    var profileEmail by remember { mutableStateOf(initialUser.email) }
+    var profileRole by remember { mutableStateOf(initialUser.role) }
 
     LaunchedEffect(Unit) {
-        profileName = sessionManager.getUserFullName()
-        profilePhone = sessionManager.getUserPhone()
-        profileEmail = sessionManager.getUserEmail()
-        profileRole = sessionManager.getUserRole()
+        val userDetails = SessionManager.getUserDetails(context)
+        profileName = userDetails.fullName
+        profilePhone = userDetails.phoneNumber
+        profileEmail = userDetails.email
+        profileRole = userDetails.role
     }
 
     var pushNotifications by remember { mutableStateOf(value = true) }
@@ -168,13 +169,14 @@ fun SettingsScreen(
                             if (!SecurityUtils.isValidEmail(profileEmail)) {
                                 Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
                             } else {
-                                sessionManager.saveUserSession(
-                                    userId = sessionManager.getUserId(),
+                                val current = SessionManager.getUserDetails(context)
+                                SessionManager.saveSession(
+                                    context = context,
+                                    userId = current.userId ?: 1,
                                     fullName = profileName,
                                     email = profileEmail,
                                     phone = profilePhone,
-                                    role = profileRole,
-                                    token = sessionManager.getAuthToken()
+                                    role = profileRole
                                 )
                                 Toast.makeText(context, "Profile details updated successfully!", Toast.LENGTH_SHORT).show()
                             }
@@ -340,7 +342,7 @@ fun SettingsScreen(
             // Logout Button
             Button(
                 onClick = {
-                    sessionManager.clearSession()
+                    SessionManager.clearSession(context)
                     onLogoutClicked()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),

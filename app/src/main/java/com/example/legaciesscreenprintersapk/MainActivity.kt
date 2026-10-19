@@ -49,9 +49,8 @@ fun LegaciesAppNavigation(
     onDarkModeChange: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
     val navController = rememberNavController()
-    val startDestination = remember { if (sessionManager.isLoggedIn()) "main" else "login" }
+    val startDestination = remember { if (SessionManager.isLoggedIn(context)) "main" else "login" }
 
     NavHost(
         navController = navController,
@@ -88,7 +87,7 @@ fun LegaciesAppNavigation(
                 isDarkMode = isDarkMode,
                 onDarkModeChange = onDarkModeChange,
             ) {
-                sessionManager.clearSession()
+                SessionManager.clearSession(context)
                 navController.navigate("login") {
                     popUpTo(0) { inclusive = true }
                 }

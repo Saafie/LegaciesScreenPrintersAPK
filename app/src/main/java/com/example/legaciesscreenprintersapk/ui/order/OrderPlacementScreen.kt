@@ -1,7 +1,6 @@
 package com.example.legaciesscreenprintersapk.ui.order
 
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -71,6 +70,11 @@ fun OrderPlacementScreen(
 
     var materialsList by remember { mutableStateOf<List<MaterialDto>>(emptyList()) }
     var isSubmitting by remember { mutableStateOf(false) }
+
+    // Confirmation dialog state
+    var submittedOrderRef by remember { mutableStateOf<String?>(null) }
+    var submittedOrderTotal by remember { mutableStateOf<Double?>(null) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     // Fetch live materials and re-sync user session info on screen load
     LaunchedEffect(Unit) {
@@ -365,33 +369,22 @@ fun OrderPlacementScreen(
                                         isSubmitting = false
 
                                         if (response.isSuccessful && response.body()?.orderRef != null) {
-                                            val createdRef = response.body()!!.orderRef!!
-                                            Toast.makeText(
-                                                context,
-                                                "Order Submitted Successfully! Ref: $createdRef",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            onOrderSubmittedSuccessfully(createdRef)
+                                            val body = response.body()!!
+                                            submittedOrderRef = body.orderRef
+                                            submittedOrderTotal = body.total ?: runningTotal.value
+                                            showSuccessDialog = true
                                         } else {
                                             val mockResult = repository.createOrder(request)
-                                            val createdRef = mockResult.orderRef ?: "ORD5834"
-                                            Toast.makeText(
-                                                context,
-                                                "Order Submitted Successfully! Ref: $createdRef",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            onOrderSubmittedSuccessfully(createdRef)
+                                            submittedOrderRef = mockResult.orderRef ?: "ORD5834"
+                                            submittedOrderTotal = mockResult.total ?: runningTotal.value
+                                            showSuccessDialog = true
                                         }
                                     } catch (_: Exception) {
                                         isSubmitting = false
                                         val mockResult = repository.createOrder(request)
-                                        val createdRef = mockResult.orderRef ?: "ORD5834"
-                                        Toast.makeText(
-                                            context,
-                                            "Order Submitted Successfully! Ref: $createdRef",
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                        onOrderSubmittedSuccessfully(createdRef)
+                                        submittedOrderRef = mockResult.orderRef ?: "ORD5834"
+                                        submittedOrderTotal = mockResult.total ?: runningTotal.value
+                                        showSuccessDialog = true
                                     }
                                 }
                             }
@@ -412,6 +405,59 @@ fun OrderPlacementScreen(
                 }
             }
         }
+    }
+
+    // Confirmation AlertDialog
+    if (showSuccessDialog && submittedOrderRef != null) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            containerColor = CardBackground,
+            title = {
+                Text(
+                    text = "Order Submitted Successfully!",
+                    color = PrimaryOrange,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Your order reference is: $submittedOrderRef\nTotal: R %.2f\n\nPlease keep this reference for live tracking.".format(submittedOrderTotal ?: 0.0),
+                    color = TextWhite,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val ref = submittedOrderRef!!
+                        showSuccessDialog = false
+                        onOrderSubmittedSuccessfully(ref)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange)
+                ) {
+                    Text(text = "Track Now", color = TextWhite, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSuccessDialog = false
+                        // Clear form
+                        designRows.clear()
+                        designRows.add(
+                            DesignRowState(
+                                designName = "Legacies Custom Print",
+                                selectedMaterialId = 1,
+                                selectedMaterialName = "10oz Vinyl (Black, Gold)",
+                                quantityString = "1"
+                            )
+                        )
+                    }
+                ) {
+                    Text(text = "OK", color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }
 

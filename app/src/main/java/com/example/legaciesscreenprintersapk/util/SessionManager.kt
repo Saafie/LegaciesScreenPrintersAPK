@@ -2,6 +2,7 @@ package com.example.legaciesscreenprintersapk.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.legaciesscreenprintersapk.ui.remote.models.UserDto
 
 class SessionManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -15,6 +16,37 @@ class SessionManager(context: Context) {
         private const val KEY_ROLE = "role"
         private const val KEY_TOKEN = "authToken"
         private const val KEY_IS_LOGGED_IN = "isLoggedIn"
+
+        fun saveSession(
+            context: Context,
+            userId: Int,
+            fullName: String,
+            email: String,
+            role: String = "Customer",
+            phone: String = "+27 82 123 4567",
+            token: String? = null
+        ) {
+            SessionManager(context).saveUserSession(
+                userId = userId,
+                fullName = fullName,
+                email = email,
+                phone = phone,
+                role = role,
+                token = token
+            )
+        }
+
+        fun isLoggedIn(context: Context): Boolean {
+            return SessionManager(context).isLoggedIn()
+        }
+
+        fun getUserDetails(context: Context): UserDto {
+            return SessionManager(context).getUserDetails()
+        }
+
+        fun clearSession(context: Context) {
+            SessionManager(context).clearSession()
+        }
     }
 
     fun saveUserSession(
@@ -49,6 +81,16 @@ class SessionManager(context: Context) {
     fun getAuthToken(): String? = prefs.getString(KEY_TOKEN, null)
 
     fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+
+    fun getUserDetails(): UserDto {
+        return UserDto(
+            userId = getUserId(),
+            fullName = getUserFullName(),
+            email = getUserEmail(),
+            phoneNumber = getUserPhone(),
+            role = getUserRole()
+        )
+    }
 
     fun clearSession() {
         prefs.edit().clear().apply()

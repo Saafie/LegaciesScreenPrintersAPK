@@ -220,6 +220,10 @@ class MockDataRepository(
         }
     }
 
+    fun authenticate(email: String, rawPassword: String): AuthResponse? {
+        return verifyOfflineCredentials(email, rawPassword)
+    }
+
     suspend fun login(email: String, rawPassword: String): AuthResponse {
         if (!forceOfflineMode) {
             try {
