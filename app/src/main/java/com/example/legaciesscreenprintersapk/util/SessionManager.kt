@@ -2,7 +2,10 @@ package com.example.legaciesscreenprintersapk.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.remote.models.UserDto
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class SessionManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -16,6 +19,7 @@ class SessionManager(context: Context) {
         private const val KEY_ROLE = "role"
         private const val KEY_TOKEN = "authToken"
         private const val KEY_IS_LOGGED_IN = "isLoggedIn"
+        private const val KEY_CREATED_ORDERS = "created_orders"
 
         fun saveSession(
             context: Context,
@@ -46,6 +50,14 @@ class SessionManager(context: Context) {
 
         fun clearSession(context: Context) {
             SessionManager(context).clearSession()
+        }
+
+        fun saveCreatedOrder(context: Context, order: OrderTrackingDto) {
+            SessionManager(context).saveCreatedOrder(order)
+        }
+
+        fun getSavedCreatedOrders(context: Context): List<OrderTrackingDto> {
+            return SessionManager(context).getSavedCreatedOrders()
         }
     }
 
@@ -94,5 +106,23 @@ class SessionManager(context: Context) {
 
     fun clearSession() {
         prefs.edit().clear().apply()
+    }
+
+    fun saveCreatedOrder(order: OrderTrackingDto) {
+        val existing = getSavedCreatedOrders().toMutableList()
+        existing.removeAll { it.orderRef == order.orderRef }
+        existing.add(0, order)
+        val json = Gson().toJson(existing)
+        prefs.edit().putString(KEY_CREATED_ORDERS, json).apply()
+    }
+
+    fun getSavedCreatedOrders(): List<OrderTrackingDto> {
+        val json = prefs.getString(KEY_CREATED_ORDERS, null) ?: return emptyList()
+        return try {
+            val type = object : TypeToken<List<OrderTrackingDto>>() {}.type
+            Gson().fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 }
