@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">LegaciesScreenPrintersAPK</string>
+    <string name="app_title">LEGACIES SCREEN PRINTERS</string>
+    <string name="customer_portal_sign_in">Customer Portal Sign In</string>
+    <string name="email_address">Email Address</string>
+    <string name="password">Password</string>
+    <string name="sign_in">SIGN IN</string>
+    <string name="sign_in_sso">Sign in with Google (SSO)</string>
+</resources>

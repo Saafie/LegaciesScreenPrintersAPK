@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Card for Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1E1E1E"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Title of App-->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/app_title"
+            android:textColor="#FF6F00"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:text="@string/customer_portal_sign_in"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
+        <!-- Input Email -->
+        <EditText
+            android:id="@+id/etEmail"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:autofillHints="emailAddress"
+            android:background="#2C2C2C"
+            android:hint="@string/email_address"
+            android:inputType="textEmailAddress"
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A0A0A0"
+            android:textSize="14sp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="16dp" />
+
+        <!-- Input for Password -->
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:autofillHints="password"
+            android:background="#2C2C2C"
+            android:hint="@string/password"
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A0A0A0"
+            android:textSize="14sp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+
+        <!-- Button for Sign In -->
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:backgroundTint="#FF6F00"
+            android:text="@string/sign_in"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="12dp" />
+
+        <!-- The SSO Button -->
+        <Button
+            android:id="@+id/btnSSO"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:backgroundTint="#2C2C2C"
+            android:text="@string/sign_in_sso"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
+
+</LinearLayout>
