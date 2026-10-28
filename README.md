@@ -1,6 +1,8 @@
 
 # Legacies Screen Printers – Mobile & Backend Operations System
 
+Youtube Link: https://youtu.be/yL6uNkRqnlo?si=manciL88r3y1n0dE
+
 A full-stack operational management system built for **Legacy Screen Printers**, combining a native **Kotlin Android mobile application** with a robust **C# ASP.NET Core Web API** backend connected to a relational **SQL Server** database.
 
 This project was engineered to digitize production-floor workflows, streamline client order tracking, and replace manual order preparation processes with a reliable, end-to-end client-server architecture.
