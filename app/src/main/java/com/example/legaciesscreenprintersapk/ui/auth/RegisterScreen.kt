@@ -295,6 +295,7 @@ fun RegisterScreen(
                                         onRegisterSuccess()
                                     } else {
                                         val mockResult = repository.register(trimmedName, trimmedEmail, trimmedPhone, password)
+                                        SessionManager.registerAccount(context, trimmedName, trimmedEmail, trimmedPhone, password)
                                         SessionManager.saveSession(
                                             context = context,
                                             userId = mockResult.userId ?: 1,
@@ -310,6 +311,7 @@ fun RegisterScreen(
                                 } catch (_: Exception) {
                                     isLoading = false
                                     val mockResult = repository.register(trimmedName, trimmedEmail, trimmedPhone, password)
+                                    SessionManager.registerAccount(context, trimmedName, trimmedEmail, trimmedPhone, password)
                                     SessionManager.saveSession(
                                         context = context,
                                         userId = mockResult.userId ?: 1,

@@ -217,7 +217,7 @@ class MockDataRepository(
         val expectedHash = userPasswordHashes[user.email.lowercase()] ?: userPasswordHashes[trimmedEmail.lowercase()]
 
         return if (expectedHash != null && expectedHash == hashedPass) {
-            AuthResponse(user.userId, user.fullName, user.email, user.role, "mock_jwt_token_${user.userId}")
+            AuthResponse(user.userId, user.fullName, user.email, user.role, "mock_jwt_token_${user.userId}", user.phoneNumber)
         } else {
             null
         }
@@ -262,7 +262,7 @@ class MockDataRepository(
         seededUsers.add(newUser)
         userPasswordHashes[email.lowercase()] = SecurityUtils.hashPassword(rawPassword)
 
-        return AuthResponse(newUserId, fullName, email, "Customer", "mock_jwt_token_$newUserId")
+        return AuthResponse(newUserId, fullName, email, "Customer", "mock_jwt_token_$newUserId", phone)
     }
 
     suspend fun getMaterials(): List<MaterialDto> {
