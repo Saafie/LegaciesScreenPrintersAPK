@@ -24,13 +24,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
-import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
-import com.example.legaciesscreenprintersapk.ui.remote.models.AuthRequest
+import com.example.legaciesscreenprintersapk.ui.auth.AuthRepository.AuthResult
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
-import com.example.legaciesscreenprintersapk.util.GoogleAuthHelper
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
-import com.example.legaciesscreenprintersapk.util.SessionManager
 import kotlinx.coroutines.launch
 
 val DarkBackground = Color(0xFF121212)
@@ -40,10 +36,12 @@ val TextWhite = Color(0xFFFFFFFF)
 val TextGray = Color(0xFFA0A0A0)
 val ErrorRed = Color(0xFFCF6679)
 
+/** Sign-in screen: email/password or "Sign in with Google". */
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    sessionMessage: String? = null,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -52,12 +50,24 @@ fun LoginScreen(
 
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
-    var authErrorMessage by remember { mutableStateOf<String?>(null) }
+    var authErrorMessage by remember { mutableStateOf(sessionMessage) }
+    var isGoogleLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val sessionManager = remember { SessionManager(context) }
-    val repository = remember { MockDataRepository() }
+    val authRepository = remember { AuthRepository(context) }
+
+    /** Shared handling for both sign-in methods. */
+    fun handleResult(result: AuthResult) {
+        when (result) {
+            is AuthResult.Success -> {
+                Toast.makeText(context, "Welcome, ${result.fullName}!", Toast.LENGTH_SHORT).show()
+                onLoginSuccess()
+            }
+            is AuthResult.Error -> authErrorMessage = result.message
+            AuthResult.Cancelled -> Unit
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -207,101 +217,13 @@ fun LoginScreen(
                         if (!hasError) {
                             isLoading = true
                             scope.launch {
-                                val trimmedEmail = email.trim()
-                                try {
-                                    val apiService = RetrofitClient.apiService
-                                    val response = apiService.login(AuthRequest(trimmedEmail, password))
-                                    isLoading = false
-
-                                    if (response.isSuccessful && response.body() != null && (response.body()?.userId != null || response.body()?.email != null)) {
-                                        val body = response.body()!!
-                                        val userPhone = body.phoneNumber
-                                            ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
-                                            ?: "+27 82 123 4567"
-                                        SessionManager.saveSession(
-                                            context = context,
-                                            userId = body.userId ?: 1,
-                                            fullName = body.fullName ?: "Customer User",
-                                            email = body.email ?: trimmedEmail,
-                                            role = body.role ?: "Customer",
-                                            phone = userPhone,
-                                            token = body.token
-                                        )
-                                        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess()
-                                    } else {
-                                        // Server returned non-200 OK (e.g. 404/401 because user is registered locally): check local accounts & seeded users
-                                        val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
-                                        val mockResult = repository.authenticate(trimmedEmail, password)
-                                        val userPhone = localAccount?.phoneNumber
-                                            ?: mockResult?.phoneNumber
-                                            ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
-                                            ?: "+27 82 123 4567"
-
-                                        val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
-                                            com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
-                                                userId = mockResult.userId,
-                                                fullName = mockResult.fullName ?: "Customer User",
-                                                email = mockResult.email ?: trimmedEmail,
-                                                phoneNumber = userPhone,
-                                                role = mockResult.role ?: "Customer"
-                                            )
-                                        } else null
-
-                                        if (authUser != null) {
-                                            SessionManager.saveSession(
-                                                context = context,
-                                                userId = authUser.userId ?: 1,
-                                                fullName = authUser.fullName,
-                                                email = authUser.email,
-                                                role = authUser.role,
-                                                phone = authUser.phoneNumber
-                                            )
-                                            Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
-                                            onLoginSuccess()
-                                        } else {
-                                            authErrorMessage = "Invalid email or password. Please try again."
-                                        }
-                                    }
-                                } catch (_: Exception) {
-                                    isLoading = false
-                                    // Network error/unreachable: Verify against SessionManager local persistent users & MockDataRepository seeded users
-                                    val localAccount = SessionManager.verifyAccount(context, trimmedEmail, password)
-                                    val mockResult = repository.authenticate(trimmedEmail, password)
-                                    val userPhone = localAccount?.phoneNumber
-                                        ?: mockResult?.phoneNumber
-                                        ?: MockDataRepository.seededUsers.find { it.email.equals(trimmedEmail, ignoreCase = true) }?.phoneNumber
-                                        ?: "+27 82 123 4567"
-
-                                    val authUser = localAccount ?: if (mockResult != null && mockResult.userId != null) {
-                                        com.example.legaciesscreenprintersapk.ui.remote.models.UserDto(
-                                            userId = mockResult.userId,
-                                            fullName = mockResult.fullName ?: "Customer User",
-                                            email = mockResult.email ?: trimmedEmail,
-                                            phoneNumber = userPhone,
-                                            role = mockResult.role ?: "Customer"
-                                        )
-                                    } else null
-
-                                    if (authUser != null) {
-                                        SessionManager.saveSession(
-                                            context = context,
-                                            userId = authUser.userId ?: 1,
-                                            fullName = authUser.fullName,
-                                            email = authUser.email,
-                                            role = authUser.role,
-                                            phone = authUser.phoneNumber
-                                        )
-                                        Toast.makeText(context, "Signed in successfully!", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess()
-                                    } else {
-                                        authErrorMessage = "Invalid email or password. Please try again."
-                                    }
-                                }
+                                val result = authRepository.login(email, password)
+                                isLoading = false
+                                handleResult(result)
                             }
                         }
                     },
-                    enabled = !isLoading,
+                    enabled = !isLoading && !isGoogleLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryOrange),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
@@ -321,44 +243,29 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Google SSO Button
+                // Google SSO button: real Google account chooser, verified by the API.
                 OutlinedButton(
                     onClick = {
+                        authErrorMessage = null
+                        isGoogleLoading = true
                         scope.launch {
-                            GoogleAuthHelper.signInWithGoogle(
-                                context = context,
-                                onSuccess = { user ->
-                                    sessionManager.saveUserSession(
-                                        userId = 1,
-                                        fullName = user.displayName,
-                                        email = user.email,
-                                        role = "Customer",
-                                        token = user.idToken
-                                    )
-                                    Toast.makeText(context, "SSO Welcome ${user.displayName}", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess()
-                                },
-                                onError = { msg ->
-                                    sessionManager.saveUserSession(
-                                        userId = 1,
-                                        fullName = "Sipho Dlamini",
-                                        email = "sipho@example.com",
-                                        role = "Customer",
-                                        token = "sso_fallback_token"
-                                    )
-                                    Toast.makeText(context, "SSO Sign-in: $msg", Toast.LENGTH_SHORT).show()
-                                    onLoginSuccess()
-                                }
-                            )
+                            val result = authRepository.signInWithGoogle(context)
+                            isGoogleLoading = false
+                            handleResult(result)
                         }
                     },
+                    enabled = !isLoading && !isGoogleLoading,
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, PrimaryOrange),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Text(text = "Sign in with Google (SSO)", color = TextWhite)
+                    if (isGoogleLoading) {
+                        CircularProgressIndicator(color = PrimaryOrange, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text(text = "Sign in with Google", color = TextWhite)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

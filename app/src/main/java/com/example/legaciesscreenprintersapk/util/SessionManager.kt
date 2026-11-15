@@ -2,191 +2,133 @@ package com.example.legaciesscreenprintersapk.util
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.core.content.edit
+import com.example.legaciesscreenprintersapk.ui.remote.OrdersCache
+import com.example.legaciesscreenprintersapk.ui.remote.models.AuthResponse
 import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.remote.models.UserDto
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
+/**
+ * Stores the signed-in session on the device: the API's JWT plus the user's display details.
+ * Reference: Android Developers (2025) Save simple data with SharedPreferences - https://developer.android.com/training/data-storage/shared-preferences
+ */
 class SessionManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
-    private data class LocalUserAccount(
-        val userId: Int,
-        val fullName: String,
-        val email: String,
-        val phone: String,
-        val passwordHash: String,
-        val role: String = "Customer"
-    )
+    private val prefs: SharedPreferences =
+        context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREF_NAME = "LegaciesUserSession"
+        private const val TAG = "LSP/Session"
+
+        /** Must match the file name excluded in backup_rules.xml / data_extraction_rules.xml. */
+        const val PREF_NAME = "LegaciesUserSession"
+
         private const val KEY_USER_ID = "userId"
         private const val KEY_FULL_NAME = "fullName"
         private const val KEY_EMAIL = "email"
         private const val KEY_PHONE = "phoneNumber"
         private const val KEY_ROLE = "role"
         private const val KEY_TOKEN = "authToken"
-        private const val KEY_IS_LOGGED_IN = "isLoggedIn"
-        private const val KEY_SAVED_ORDERS = "saved_created_orders"
-        private const val KEY_REGISTERED_ACCOUNTS = "registered_accounts"
+        private const val KEY_CACHED_ORDERS = "cached_my_orders"
+        private const val KEY_CACHED_AT = "cached_my_orders_at"
 
-        fun saveSession(
-            context: Context,
-            userId: Int,
-            fullName: String,
-            email: String,
-            role: String = "Customer",
-            phone: String = "+27 82 123 4567",
-            token: String? = null
-        ) {
-            SessionManager(context).saveUserSession(
-                userId = userId,
-                fullName = fullName,
-                email = email,
-                phone = phone,
-                role = role,
-                token = token
-            )
-        }
+        fun isLoggedIn(context: Context): Boolean = SessionManager(context).isLoggedIn()
 
-        fun isLoggedIn(context: Context): Boolean {
-            return SessionManager(context).isLoggedIn()
-        }
+        fun getUserDetails(context: Context): UserDto = SessionManager(context).getUserDetails()
 
-        fun getUserDetails(context: Context): UserDto {
-            return SessionManager(context).getUserDetails()
-        }
-
-        fun clearSession(context: Context) {
-            SessionManager(context).clearSession()
-        }
-
-        fun saveCreatedOrder(context: Context, order: OrderTrackingDto) {
-            SessionManager(context).saveCreatedOrder(order)
-        }
-
-        fun getSavedCreatedOrders(context: Context): List<OrderTrackingDto> {
-            return SessionManager(context).getSavedCreatedOrders()
-        }
-
-        fun registerAccount(context: Context, name: String, email: String, phone: String, rawPassword: String) {
-            SessionManager(context).registerAccount(name, email, phone, rawPassword)
-        }
-
-        fun verifyAccount(context: Context, email: String, rawPassword: String): UserDto? {
-            return SessionManager(context).verifyAccount(email, rawPassword)
-        }
+        fun clearSession(context: Context) = SessionManager(context).clearSession()
     }
 
-    fun saveUserSession(
-        userId: Int,
-        fullName: String,
-        email: String,
-        phone: String = "+27 82 123 4567",
-        role: String = "Customer",
-        token: String? = null
-    ) {
+    /** Saves a successful sign-in from the API. */
+    fun saveFromAuthResponse(auth: AuthResponse, fallbackPhone: String? = null): Boolean {
+        val token = auth.token
+        val userId = auth.userId
+        if (token.isNullOrBlank() || userId == null) {
+            Log.w(TAG, "Not saving session: response had no token or user id.")
+            return false
+        }
         prefs.edit {
             putInt(KEY_USER_ID, userId)
+            putString(KEY_FULL_NAME, auth.fullName.orEmpty())
+            putString(KEY_EMAIL, auth.email.orEmpty())
+            putString(KEY_PHONE, auth.phoneNumber ?: fallbackPhone.orEmpty())
+            putString(KEY_ROLE, auth.role ?: "customer")
+            putString(KEY_TOKEN, token)
+        }
+        Log.i(TAG, "Session saved for user $userId (expires ${JwtUtils.expiryMillis(token)?.let { java.util.Date(it) }}).")
+        return true
+    }
+
+    /** Updates the display details shown in Settings without touching the token. */
+    fun updateProfile(fullName: String, email: String, phone: String) {
+        prefs.edit {
             putString(KEY_FULL_NAME, fullName)
             putString(KEY_EMAIL, email)
             putString(KEY_PHONE, phone)
-            putString(KEY_ROLE, role)
-            putString(KEY_TOKEN, token ?: "mock_jwt_token_$userId")
-            putBoolean(KEY_IS_LOGGED_IN, true)
         }
+        Log.d(TAG, "Profile details updated locally.")
     }
 
-    fun getUserId(): Int = prefs.getInt(KEY_USER_ID, 1)
+    /** The signed-in user's id, or -1 if nobody is signed in. */
+    fun getUserId(): Int = prefs.getInt(KEY_USER_ID, -1)
 
-    fun getUserFullName(): String = prefs.getString(KEY_FULL_NAME, "Sipho Dlamini") ?: "Sipho Dlamini"
+    fun getUserFullName(): String = prefs.getString(KEY_FULL_NAME, null).orEmpty()
 
-    fun getUserEmail(): String = prefs.getString(KEY_EMAIL, "sipho@example.com") ?: "sipho@example.com"
+    fun getUserEmail(): String = prefs.getString(KEY_EMAIL, null).orEmpty()
 
-    fun getUserPhone(): String = prefs.getString(KEY_PHONE, "+27 82 123 4567") ?: "+27 82 123 4567"
+    fun getUserPhone(): String = prefs.getString(KEY_PHONE, null).orEmpty()
 
-    fun getUserRole(): String = prefs.getString(KEY_ROLE, "Customer") ?: "Customer"
+    fun getUserRole(): String = prefs.getString(KEY_ROLE, null) ?: "customer"
 
+    /** The stored JWT, or null if signed out. */
     fun getAuthToken(): String? = prefs.getString(KEY_TOKEN, null)
 
-    fun isLoggedIn(): Boolean = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-
-    fun getUserDetails(): UserDto {
-        return UserDto(
-            userId = getUserId(),
-            fullName = getUserFullName(),
-            email = getUserEmail(),
-            phoneNumber = getUserPhone(),
-            role = getUserRole()
-        )
+    /** Signed in only if a token is stored and it hasn't expired. Clears an expired session. */
+    fun isLoggedIn(): Boolean {
+        val token = getAuthToken() ?: return false
+        if (JwtUtils.isExpired(token)) {
+            Log.i(TAG, "Stored token has expired; clearing session.")
+            clearSession()
+            return false
+        }
+        return true
     }
+
+    fun getUserDetails(): UserDto = UserDto(
+        userId = getUserId().takeIf { it > 0 },
+        fullName = getUserFullName(),
+        email = getUserEmail(),
+        phoneNumber = getUserPhone(),
+        role = getUserRole()
+    )
 
     fun clearSession() {
         prefs.edit { clear() }
+        Log.i(TAG, "Session cleared.")
     }
 
-    fun saveCreatedOrder(order: OrderTrackingDto) {
-        val existing = getSavedCreatedOrders().toMutableList()
-        val index = existing.indexOfFirst { it.orderRef == order.orderRef }
-        if (index != -1) {
-            existing[index] = order
-        } else {
-            existing.add(0, order)
+    // ---- Offline copy of "my orders" (see OrderRepository) ----
+
+    /** Keeps the last downloaded order list so it can be shown, labelled, when offline. */
+    val ordersCache: OrdersCache = object : OrdersCache {
+        override fun save(orders: List<OrderTrackingDto>, savedAtMillis: Long) {
+            prefs.edit {
+                putString(KEY_CACHED_ORDERS, Gson().toJson(orders))
+                putLong(KEY_CACHED_AT, savedAtMillis)
+            }
         }
-        val json = Gson().toJson(existing)
-        prefs.edit { putString(KEY_SAVED_ORDERS, json) }
-    }
 
-    fun getSavedCreatedOrders(): List<OrderTrackingDto> {
-        val json = prefs.getString(KEY_SAVED_ORDERS, null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<OrderTrackingDto>>() {}.type
-            Gson().fromJson(json, type) ?: emptyList()
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-
-    fun registerAccount(name: String, email: String, phone: String, rawPassword: String) {
-        val existing = getRegisteredAccounts().toMutableList()
-        val hashed = SecurityUtils.hashPassword(rawPassword)
-        val normalizedEmail = email.trim().lowercase()
-        val idx = existing.indexOfFirst { it.email.lowercase() == normalizedEmail }
-        if (idx != -1) {
-            existing[idx] = existing[idx].copy(fullName = name, phone = phone, passwordHash = hashed)
-        } else {
-            val newUserId = 100 + existing.size + 1
-            existing.add(LocalUserAccount(newUserId, name, email.trim(), phone, hashed))
-        }
-        val json = Gson().toJson(existing)
-        prefs.edit { putString(KEY_REGISTERED_ACCOUNTS, json) }
-    }
-
-    fun verifyAccount(email: String, rawPassword: String): UserDto? {
-        val accounts = getRegisteredAccounts()
-        val hashed = SecurityUtils.hashPassword(rawPassword)
-        val normalizedEmail = email.trim().lowercase()
-        val found = accounts.find { (it.email.lowercase() == normalizedEmail) && (it.passwordHash == hashed) }
-        return found?.let {
-            UserDto(
-                userId = it.userId,
-                fullName = it.fullName,
-                email = it.email,
-                phoneNumber = it.phone,
-                role = it.role
-            )
-        }
-    }
-
-    private fun getRegisteredAccounts(): List<LocalUserAccount> {
-        val json = prefs.getString(KEY_REGISTERED_ACCOUNTS, null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<LocalUserAccount>>() {}.type
-            Gson().fromJson(json, type) ?: emptyList()
-        } catch (_: Exception) {
-            emptyList()
+        override fun load(): Pair<List<OrderTrackingDto>, Long>? {
+            val json = prefs.getString(KEY_CACHED_ORDERS, null) ?: return null
+            return try {
+                val type = object : TypeToken<List<OrderTrackingDto>>() {}.type
+                val orders: List<OrderTrackingDto> = Gson().fromJson(json, type) ?: return null
+                orders to prefs.getLong(KEY_CACHED_AT, 0L)
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 }

@@ -33,7 +33,7 @@ fun MainScreen(
     onLogout: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
-    var trackSearchQuery by remember { mutableStateOf("ORD5824") }
+    var trackSearchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         bottomBar = {

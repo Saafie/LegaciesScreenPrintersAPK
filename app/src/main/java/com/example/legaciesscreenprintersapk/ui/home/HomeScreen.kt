@@ -29,10 +29,15 @@ import com.example.legaciesscreenprintersapk.ui.auth.DarkBackground
 import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
 import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
-import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
-import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import com.example.legaciesscreenprintersapk.ui.remote.ApiResult
+import com.example.legaciesscreenprintersapk.ui.remote.OrderRepository
+import com.example.legaciesscreenprintersapk.ui.remote.OrdersResult
+import android.util.Log
+import com.example.legaciesscreenprintersapk.ui.auth.ErrorRed
+import kotlinx.coroutines.launch
 import com.example.legaciesscreenprintersapk.ui.remote.models.OrderTrackingDto
 import com.example.legaciesscreenprintersapk.ui.theme.LegaciesScreenPrintersAPKTheme
+import com.example.legaciesscreenprintersapk.util.DateFormatUtils
 import com.example.legaciesscreenprintersapk.util.SessionManager
 
 @Composable
@@ -196,35 +201,30 @@ fun QuickActionCard(
     }
 }
 
+/** The signed-in customer's orders (from the app and the website). */
 @Composable
 fun OrderHistoryDialog(onDismiss: () -> Unit) {
-    var ordersList by remember { mutableStateOf<List<OrderTrackingDto>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
-    val repository = remember { MockDataRepository(context) }
+    val scope = rememberCoroutineScope()
+    val repository = remember { OrderRepository(cache = SessionManager(context).ordersCache) }
 
-    val currentUserId = sessionManager.getUserId()
+    var result by remember { mutableStateOf<ApiResult<OrdersResult>?>(null) } // null = loading
 
-    LaunchedEffect(Unit) {
-        val fetchedOrders = try {
-            val response = RetrofitClient.apiService.getAllOrders()
-            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                response.body()!!
-            } else {
-                repository.getAllOrders()
+    fun load() {
+        result = null
+        scope.launch {
+            result = repository.getMyOrders()
+            // A fixed label, not the class name: R8 renames classes in release builds.
+            val outcome = when (val r = result) {
+                is ApiResult.Success -> if (r.data.offlineSavedAtMillis != null) "offline copy (${r.data.orders.size})" else "${r.data.orders.size} order(s)"
+                is ApiResult.HttpError -> "HTTP ${r.code}"
+                is ApiResult.NetworkError -> "server unreachable"
+                null -> "nothing"
             }
-        } catch (_: Exception) {
-            repository.getAllOrders()
+            Log.d("LSP/Order", "Order history loaded: $outcome")
         }
-
-        // Scope order history strictly to logged-in user
-        ordersList = fetchedOrders.filter { order ->
-            order.userId == currentUserId
-        }
-        isLoading = false
     }
+    LaunchedEffect(Unit) { load() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -233,54 +233,36 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
             Text(text = "Past Order History", color = PrimaryOrange, fontWeight = FontWeight.Bold)
         },
         text = {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
+            when (val r = result) {
+                null -> Box(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = PrimaryOrange)
+                ) { CircularProgressIndicator(color = PrimaryOrange) }
+
+                is ApiResult.NetworkError, is ApiResult.HttpError -> {
+                    val message = if (r is ApiResult.NetworkError) r.message else (r as ApiResult.HttpError).message
+                    Column(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = message, color = ErrorRed, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(onClick = { load() }) { Text("Retry", color = PrimaryOrange) }
+                    }
                 }
-            } else if (ordersList.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No past orders found for your account.",
-                        color = TextGray,
-                        fontSize = 13.sp
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 350.dp)
-                ) {
-                    items(ordersList) { order ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(text = order.orderRef, color = PrimaryOrange, fontWeight = FontWeight.Bold)
-                                    Text(text = "R %.2f".format(order.totalAmount), color = TextWhite, fontWeight = FontWeight.Bold)
-                                }
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(text = "Client: ${order.clientName}", color = TextWhite, fontSize = 12.sp)
-                                Text(text = "Date: ${order.createdAt}", color = TextGray, fontSize = 11.sp)
-                                Text(text = order.status, color = PrimaryOrange, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            }
+
+                is ApiResult.Success -> Column {
+                    r.data.offlineSavedAtMillis?.let { savedAt ->
+                        OfflineBanner(savedAt)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    if (r.data.orders.isEmpty()) {
+                        Text(
+                            text = "You haven't placed any orders yet.",
+                            color = TextGray,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 350.dp)) {
+                            items(r.data.orders) { order -> OrderHistoryCard(order) }
                         }
                     }
                 }
@@ -292,6 +274,40 @@ fun OrderHistoryDialog(onDismiss: () -> Unit) {
             }
         }
     )
+}
+
+/** One order in the history list. */
+@Composable
+private fun OrderHistoryCard(order: OrderTrackingDto) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = order.orderRef, color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                Text(text = "R %.2f".format(order.totalAmount), color = TextWhite, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = "Client: ${order.clientName}", color = TextWhite, fontSize = 12.sp)
+            Text(text = "Date: ${DateFormatUtils.formatOrderDate(order.createdAt)}", color = TextGray, fontSize = 11.sp)
+            Text(text = order.status, color = PrimaryOrange, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+/** Banner shown when the list is the saved offline copy. */
+@Composable
+fun OfflineBanner(savedAtMillis: Long) {
+    val savedAt = DateFormatUtils.formatOrderDate(java.time.Instant.ofEpochMilli(savedAtMillis).toString())
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF3A2A12)), modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Offline - showing your orders as saved on $savedAt. Statuses may have changed.",
+            color = Color(0xFFFFB74D),
+            fontSize = 12.sp,
+            modifier = Modifier.padding(10.dp)
+        )
+    }
 }
 
 @Composable

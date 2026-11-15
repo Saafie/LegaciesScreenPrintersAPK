@@ -1,5 +1,6 @@
 package com.example.legaciesscreenprintersapk.ui.order
 
+import android.widget.Toast
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,8 +31,10 @@ import com.example.legaciesscreenprintersapk.ui.auth.ErrorRed
 import com.example.legaciesscreenprintersapk.ui.auth.PrimaryOrange
 import com.example.legaciesscreenprintersapk.ui.auth.TextGray
 import com.example.legaciesscreenprintersapk.ui.auth.TextWhite
-import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
-import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
+import android.util.Log
+import androidx.compose.ui.graphics.Color
+import com.example.legaciesscreenprintersapk.ui.remote.ApiResult
+import com.example.legaciesscreenprintersapk.ui.remote.OrderRepository
 import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderItemRequest
 import com.example.legaciesscreenprintersapk.ui.remote.models.CreateOrderRequest
 import com.example.legaciesscreenprintersapk.ui.remote.models.MaterialDto
@@ -43,7 +46,7 @@ import kotlinx.coroutines.launch
 data class DesignRowState(
     var designName: String = "",
     var selectedMaterialId: Int = 1,
-    var selectedMaterialName: String = "10oz Vinyl (Black, Gold)",
+    var selectedMaterialName: String = "",
     var quantityString: String = "1",
     var artworkUri: Uri? = null,
     var designNameError: String? = null,
@@ -58,7 +61,7 @@ fun OrderPlacementScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sessionManager = remember { SessionManager(context) }
-    val repository = remember { MockDataRepository(context) }
+    val repository = remember { OrderRepository() }
 
     var clientName by remember { mutableStateOf(sessionManager.getUserFullName()) }
     var clientPhone by remember { mutableStateOf(sessionManager.getUserPhone()) }
@@ -69,6 +72,7 @@ fun OrderPlacementScreen(
     var clientEmailError by remember { mutableStateOf<String?>(null) }
 
     var materialsList by remember { mutableStateOf<List<MaterialDto>>(emptyList()) }
+    var materialsError by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
 
     // Confirmation dialog state
@@ -76,34 +80,48 @@ fun OrderPlacementScreen(
     var submittedOrderTotal by remember { mutableStateOf<Double?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // Fetch live materials and re-sync user session info on screen load
-    LaunchedEffect(Unit) {
-        clientName = sessionManager.getUserFullName()
-        clientPhone = sessionManager.getUserPhone()
-        clientEmail = sessionManager.getUserEmail()
-
-        try {
-            val response = RetrofitClient.apiService.getMaterials()
-            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                materialsList = response.body()!!
-            } else {
-                materialsList = repository.getMaterials()
-            }
-        } catch (_: Exception) {
-            materialsList = repository.getMaterials()
-        }
-    }
-
     // Dynamic list of multi-design specification rows
     val designRows = remember {
         mutableStateListOf(
             DesignRowState(
                 designName = "Legacies Custom Print",
                 selectedMaterialId = 1,
-                selectedMaterialName = "10oz Vinyl (Black, Gold)",
+                selectedMaterialName = "",
                 quantityString = "2"
             )
         )
+    }
+
+    /** Loads the price list from the API. */
+    suspend fun loadMaterials() {
+        materialsError = null
+        when (val result = repository.getMaterials()) {
+            is ApiResult.Success -> {
+                materialsList = result.data
+                Log.d("LSP/Order", "Loaded ${result.data.size} materials.")
+                // Make sure each row uses a material that is in the loaded list.
+                result.data.firstOrNull()?.let { first ->
+                    designRows.forEachIndexed { index, row ->
+                        if (result.data.none { it.materialId == row.selectedMaterialId }) {
+                            designRows[index] = row.copy(
+                                selectedMaterialId = first.materialId ?: row.selectedMaterialId,
+                                selectedMaterialName = first.materialName
+                            )
+                        }
+                    }
+                }
+            }
+            is ApiResult.HttpError -> materialsError = result.message
+            is ApiResult.NetworkError -> materialsError = result.message
+        }
+    }
+
+    // Load the price list and re-sync the signed-in user's details when the screen opens.
+    LaunchedEffect(Unit) {
+        clientName = sessionManager.getUserFullName()
+        clientPhone = sessionManager.getUserPhone()
+        clientEmail = sessionManager.getUserEmail()
+        loadMaterials()
     }
 
     // Real-time calculation of running order total
@@ -111,8 +129,8 @@ fun OrderPlacementScreen(
         derivedStateOf {
             designRows.sumOf { row ->
                 val qty = row.quantityString.toIntOrNull() ?: 0
-                val mat = materialsList.find { it.materialId == row.selectedMaterialId || it.materialName == row.selectedMaterialName }
-                val rate = mat?.unitPrice ?: 120.0
+                val mat = materialsList.find { it.materialId == row.selectedMaterialId }
+                val rate = mat?.unitPrice ?: 0.0
                 qty * rate
             }
         }
@@ -141,6 +159,19 @@ fun OrderPlacementScreen(
                 color = TextGray,
                 fontSize = 12.sp
             )
+
+            // The price list couldn't be loaded: say why and offer Retry (no invented prices).
+            materialsError?.let { message ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF3A1A20)), modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = message, color = ErrorRed, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { scope.launch { loadMaterials() } }) {
+                            Text("Retry", color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -272,7 +303,7 @@ fun OrderPlacementScreen(
                                 DesignRowState(
                                     designName = "Design Specification ${designRows.size + 1}",
                                     selectedMaterialId = defaultMat?.materialId ?: 1,
-                                    selectedMaterialName = defaultMat?.materialName ?: "10oz Vinyl (Black, Gold)",
+                                    selectedMaterialName = defaultMat?.materialName ?: "",
                                     quantityString = "1"
                                 )
                             )
@@ -347,7 +378,9 @@ fun OrderPlacementScreen(
                                 }
                             }
 
-                            if (!hasError) {
+                            if (hasError) {
+                                Log.d("LSP/Order", "Order form has errors, not submitted")
+                            } else {
                                 isSubmitting = true
                                 scope.launch {
                                     val itemRequests = designRows.map { row ->
@@ -364,28 +397,23 @@ fun OrderPlacementScreen(
                                         items = itemRequests
                                     )
 
-                                    try {
-                                        val response = RetrofitClient.apiService.createOrder(request)
-                                        isSubmitting = false
-
-                                        if (response.isSuccessful && response.body()?.orderRef != null) {
-                                            val body = response.body()!!
-                                            submittedOrderRef = body.orderRef
-                                            submittedOrderTotal = body.total ?: runningTotal.value
-                                            showSuccessDialog = true
-                                        } else {
-                                            val mockResult = repository.createOrder(request)
-                                            submittedOrderRef = mockResult.orderRef ?: "ORD5834"
-                                            submittedOrderTotal = mockResult.total ?: runningTotal.value
-                                            showSuccessDialog = true
+                                    when (val result = repository.createOrder(request)) {
+                                        is ApiResult.Success -> {
+                                            Log.i("LSP/Order", "Order ${result.data.orderRef} placed.")
+                                            submittedOrderRef = result.data.orderRef
+                                            submittedOrderTotal = result.data.total ?: runningTotal.value
+                                            showSuccessDialog = submittedOrderRef != null
                                         }
-                                    } catch (_: Exception) {
-                                        isSubmitting = false
-                                        val mockResult = repository.createOrder(request)
-                                        submittedOrderRef = mockResult.orderRef ?: "ORD5834"
-                                        submittedOrderTotal = mockResult.total ?: runningTotal.value
-                                        showSuccessDialog = true
+                                        // 401 = session ended; MainActivity is already returning to login.
+                                        is ApiResult.HttpError -> if (result.code != 401) {
+                                            // e.g. 409 "Not enough ... in stock": show the server's reason.
+                                            Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                                        }
+                                        // Offline: say so. The order is NOT saved, so no fake reference is shown.
+                                        is ApiResult.NetworkError ->
+                                            Toast.makeText(context, "${result.message} Your order was not placed.", Toast.LENGTH_LONG).show()
                                     }
+                                    isSubmitting = false
                                 }
                             }
                         },
@@ -429,7 +457,7 @@ fun OrderPlacementScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val ref = submittedOrderRef!!
+                        val ref = submittedOrderRef.orEmpty()
                         showSuccessDialog = false
                         onOrderSubmittedSuccessfully(ref)
                     },
@@ -448,7 +476,7 @@ fun OrderPlacementScreen(
                             DesignRowState(
                                 designName = "Legacies Custom Print",
                                 selectedMaterialId = 1,
-                                selectedMaterialName = "10oz Vinyl (Black, Gold)",
+                                selectedMaterialName = "",
                                 quantityString = "1"
                             )
                         )
@@ -480,9 +508,9 @@ fun DesignSpecificationRowItem(
         }
     }
 
-    val selectedMat = materialsList.find { it.materialId == rowState.selectedMaterialId || it.materialName == rowState.selectedMaterialName }
+    val selectedMat = materialsList.find { it.materialId == rowState.selectedMaterialId }
     val currentQty = rowState.quantityString.toIntOrNull() ?: 0
-    val currentRate = selectedMat?.unitPrice ?: 120.0
+    val currentRate = selectedMat?.unitPrice ?: 0.0 // no invented price when the list is unavailable
     val rowSubtotal = currentQty * currentRate
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -529,8 +557,9 @@ fun DesignSpecificationRowItem(
             onExpandedChange = { expandedMaterialDropdown = !expandedMaterialDropdown },
             modifier = Modifier.fillMaxWidth()
         ) {
+            // Show the name and colour from the loaded list.
             OutlinedTextField(
-                value = rowState.selectedMaterialName,
+                value = selectedMat?.let { "${it.materialName} (${it.color})" } ?: "Select a material",
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Material Selection", color = TextGray) },
@@ -604,7 +633,7 @@ fun DesignSpecificationRowItem(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.End
             ) {
-                Text(text = "Rate: R %.2f".format(currentRate), color = TextGray, fontSize = 12.sp)
+                Text(text = if (selectedMat != null) "Rate: R %.2f".format(currentRate) else "Rate: -", color = TextGray, fontSize = 12.sp)
                 Text(text = "Subtotal: R %.2f".format(rowSubtotal), color = PrimaryOrange, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }

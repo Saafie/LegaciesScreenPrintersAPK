@@ -1,21 +1,24 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 keep rules for the release build.
+# Reference: Android Developers (2025) Shrink, obfuscate, and optimize your app - https://developer.android.com/build/shrink-code
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Gson: keep the network model fields so JSON still maps after shrinking.
+-keep class com.example.legaciesscreenprintersapk.ui.remote.models.** { *; }
+-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Retrofit: keep the API interface annotations and return types.
+-keep,allowobfuscation interface com.example.legaciesscreenprintersapk.ui.remote.ApiService
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Google sign-in (Credential Manager).
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+-keep class androidx.credentials.** { *; }
+-if class androidx.credentials.CredentialManager
+-keep class androidx.credentials.playservices.** { *; }
+
+# Keep line numbers for crash reports.
+-keepattributes SourceFile, LineNumberTable
+-renamesourcefileattribute SourceFile

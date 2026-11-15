@@ -21,11 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.legaciesscreenprintersapk.ui.remote.MockDataRepository
-import com.example.legaciesscreenprintersapk.ui.remote.RetrofitClient
-import com.example.legaciesscreenprintersapk.ui.remote.models.RegisterRequest
+import com.example.legaciesscreenprintersapk.ui.auth.AuthRepository.AuthResult
 import com.example.legaciesscreenprintersapk.util.SecurityUtils
-import com.example.legaciesscreenprintersapk.util.SessionManager
 import kotlinx.coroutines.launch
 
 @Composable
@@ -48,10 +45,11 @@ fun RegisterScreen(
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var registerError by remember { mutableStateOf<String?>(null) } // message from the API
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val repository = remember { MockDataRepository() }
+    val authRepository = remember { AuthRepository(context) }
 
     Box(
         modifier = Modifier
@@ -237,11 +235,17 @@ fun RegisterScreen(
                     Text(text = it, color = ErrorRed, fontSize = 11.sp, modifier = Modifier.align(Alignment.Start))
                 }
 
+                registerError?.let { err ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = err, color = ErrorRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
                         nameError = null
+                        registerError = null
                         phoneError = null
                         emailError = null
                         passwordError = null
@@ -272,57 +276,16 @@ fun RegisterScreen(
                         if (!hasError) {
                             isLoading = true
                             scope.launch {
-                                val trimmedName = name.trim()
-                                val trimmedEmail = email.trim()
-                                val trimmedPhone = phone.trim()
-                                try {
-                                    val api = RetrofitClient.apiService
-                                    val response = api.register(RegisterRequest(trimmedName, trimmedEmail, trimmedPhone, password))
-                                    isLoading = false
-
-                                    if (response.isSuccessful && response.body() != null) {
-                                        val body = response.body()!!
-                                        SessionManager.saveSession(
-                                            context = context,
-                                            userId = body.userId ?: 1,
-                                            fullName = body.fullName ?: trimmedName,
-                                            email = body.email ?: trimmedEmail,
-                                            role = body.role ?: "Customer",
-                                            phone = trimmedPhone,
-                                            token = body.token
-                                        )
-                                        Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
-                                        onRegisterSuccess()
-                                    } else {
-                                        val mockResult = repository.register(trimmedName, trimmedEmail, trimmedPhone, password)
-                                        SessionManager.registerAccount(context, trimmedName, trimmedEmail, trimmedPhone, password)
-                                        SessionManager.saveSession(
-                                            context = context,
-                                            userId = mockResult.userId ?: 1,
-                                            fullName = mockResult.fullName ?: trimmedName,
-                                            email = mockResult.email ?: trimmedEmail,
-                                            role = mockResult.role ?: "Customer",
-                                            phone = trimmedPhone,
-                                            token = mockResult.token
-                                        )
-                                        Toast.makeText(context, "Account registered successfully!", Toast.LENGTH_SHORT).show()
+                                // Creates the account on the API, which signs it in straight away.
+                                val result = authRepository.register(name, email, phone, password)
+                                isLoading = false
+                                when (result) {
+                                    is AuthResult.Success -> {
+                                        Toast.makeText(context, "Account created. Welcome, ${result.fullName}!", Toast.LENGTH_SHORT).show()
                                         onRegisterSuccess()
                                     }
-                                } catch (_: Exception) {
-                                    isLoading = false
-                                    val mockResult = repository.register(trimmedName, trimmedEmail, trimmedPhone, password)
-                                    SessionManager.registerAccount(context, trimmedName, trimmedEmail, trimmedPhone, password)
-                                    SessionManager.saveSession(
-                                        context = context,
-                                        userId = mockResult.userId ?: 1,
-                                        fullName = mockResult.fullName ?: trimmedName,
-                                        email = mockResult.email ?: trimmedEmail,
-                                        role = mockResult.role ?: "Customer",
-                                        phone = trimmedPhone,
-                                        token = mockResult.token
-                                    )
-                                    Toast.makeText(context, "Account registered successfully!", Toast.LENGTH_SHORT).show()
-                                    onRegisterSuccess()
+                                    is AuthResult.Error -> registerError = result.message
+                                    AuthResult.Cancelled -> Unit
                                 }
                             }
                         }

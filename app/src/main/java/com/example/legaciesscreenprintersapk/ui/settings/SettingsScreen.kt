@@ -1,5 +1,6 @@
 package com.example.legaciesscreenprintersapk.ui.settings
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -48,8 +49,6 @@ fun SettingsScreen(
         profileRole = userDetails.role
     }
 
-    var pushNotifications by remember { mutableStateOf(value = true) }
-    var emailAlerts by remember { mutableStateOf(value = true) }
 
     var isHelpExpanded by remember { mutableStateOf(value = false) }
 
@@ -169,14 +168,12 @@ fun SettingsScreen(
                             if (!SecurityUtils.isValidEmail(profileEmail)) {
                                 Toast.makeText(context, "Please enter a valid email", Toast.LENGTH_SHORT).show()
                             } else {
-                                val current = SessionManager.getUserDetails(context)
-                                SessionManager.saveSession(
-                                    context = context,
-                                    userId = current.userId ?: 1,
+                                // Updates the details shown in the app; the session token is kept.
+                                Log.d("LSP/Settings", "Profile details saved")
+                                SessionManager(context).updateProfile(
                                     fullName = profileName,
                                     email = profileEmail,
-                                    phone = profilePhone,
-                                    role = profileRole
+                                    phone = profilePhone
                                 )
                                 Toast.makeText(context, "Profile details updated successfully!", Toast.LENGTH_SHORT).show()
                             }
@@ -200,7 +197,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "App Settings & Notifications",
+                        text = "App Settings",
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -213,54 +210,13 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "Order Status Push Notifications", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        Switch(
-                            checked = pushNotifications,
-                            onCheckedChange = { pushNotifications = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "Low Stock & Promotion Alerts", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        Switch(
-                            checked = emailAlerts,
-                            onCheckedChange = { emailAlerts = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
                         Text(text = "Dark Theme Mode", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Switch(
                             checked = isDarkMode,
-                            onCheckedChange = { onDarkModeChange(it) },
+                            onCheckedChange = {
+                                Log.d("LSP/Settings", "Dark theme ${if (it) "on" else "off"}")
+                                onDarkModeChange(it)
+                            },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                                 checkedTrackColor = MaterialTheme.colorScheme.primary,
@@ -342,7 +298,7 @@ fun SettingsScreen(
             // Logout Button
             Button(
                 onClick = {
-                    SessionManager.clearSession(context)
+                    // MainActivity clears the session and Google's account choice, then shows login.
                     onLogoutClicked()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
