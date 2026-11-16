@@ -82,7 +82,7 @@ LegaciesScreenPrintersAPK/
 
 | Login | Register | Home (dark) | Home (light) |
 |---|---|---|---|
-| ![Login](docs/screenshots/01-login.png) | ![Register](docs/screenshots/02-register.png) | ![Home](docs/screenshots/06-home.png) | ![Home light](docs/screenshots/23-home-light.png) |
+| ![Login](docs/playstore/screemshots/screenshots/01-login.png) | ![Register](docs/screenshots/02-register.png) | ![Home](docs/screenshots/06-home.png) | ![Home light](docs/screenshots/23-home-light.png) |
 
 | Place Order | Order Confirmation | Tracking Timeline | Offline Order History |
 |---|---|---|---|
