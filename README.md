@@ -1,7 +1,7 @@
 
 # Legacies Screen Printers – Mobile Ordering App
 
-Video Demonstration (YouTube, unlisted): https://youtu.be/yL6uNkRqnlo?si=manciL88r3y1n0dE
+Video Demonstration (YouTube, unlisted): [https://youtu.be/yL6uNkRqnlo?si=manciL88r3y1n0dE](https://youtu.be/5qRo_u9yLOo)
 
 A native **Kotlin Android application** built for **Legacies Screen Printers**. Customers use it to place print orders, track their progress through production, and manage their account. The app talks to a **C# ASP.NET Core Web API** hosted on **Azure App Service**, which stores everything in an **Azure SQL Database** shared with the Legacies website.
 
