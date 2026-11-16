@@ -28,9 +28,11 @@ android {
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
-    // API address: debug uses apiBaseUrl (default is the emulator address), release needs an https apiBaseUrlRelease.
-    val debugApiUrl = prop("apiBaseUrl") ?: "http://10.0.2.2:5000/"
-    val releaseApiUrl = prop("apiBaseUrlRelease") ?: prop("apiBaseUrl") ?: ""
+    // API address: every build uses the hosted Azure API by default.
+    // To use a local API instead, set apiBaseUrl=http://10.0.2.2:5000/ in local.properties (debug only).
+    val azureApiUrl = "https://legacies-api-f3aegcbcfdh9azhm.uaenorth-01.azurewebsites.net/"
+    val debugApiUrl = prop("apiBaseUrl") ?: azureApiUrl
+    val releaseApiUrl = prop("apiBaseUrlRelease") ?: azureApiUrl
 
     // Release signing (upload key).
     // Reference: Android Developers (2025) Sign your app - https://developer.android.com/studio/publish/app-signing
@@ -126,7 +128,7 @@ fun prop(key: String): String? =
 
 // Release builds must talk to the API over HTTPS: stop the build with a clear message otherwise.
 val checkReleaseApiUrl by tasks.registering {
-    val url = prop("apiBaseUrlRelease") ?: prop("apiBaseUrl") ?: ""
+    val url = prop("apiBaseUrlRelease") ?: "https://legacies-api-f3aegcbcfdh9azhm.uaenorth-01.azurewebsites.net/"
     doLast {
         require(url.startsWith("https://") && url.endsWith("/")) {
             "Release builds need an HTTPS API address ending in '/'. Set apiBaseUrlRelease=https://<host>/ " +
