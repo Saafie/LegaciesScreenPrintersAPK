@@ -23,8 +23,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Google sign-in: the OAuth *web* client id from Google Cloud Console.
-        val googleWebClientId = prop("googleWebClientId") ?: ""
+        // Google sign-in web client ID (public). Can be overridden with googleWebClientId.
+        val googleWebClientId = prop("googleWebClientId") ?: "493224130544-54qp1tj0s79lekair2scgqb1l34bitit.apps.googleusercontent.com"
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
