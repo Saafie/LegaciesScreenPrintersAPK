@@ -30,7 +30,7 @@ This version turns the prototype (version 1.0), which ran on mock data, into a f
 * **Live production tracking synced with the workshop:** The four-stage timeline now shows real data. When staff move an order to the next stage on the website, the customer sees the update in the app.
 * **Offline mode:** The app saves the customer's latest orders and shows them with a clear offline message when there is no connection.
 * **Automatic pricing and stock control:** Vinyl prices load live from the database, totals are calculated as the customer builds the order, and stock is deducted automatically when the order is placed.
-* **Full light and dark themes:** Every screen now follows the theme switch in Settings, not just the background.
+* **Light and dark themes:** Customers can switch the app between light and dark mode in Settings.
 
 **Other updates since the prototype**
 * Replaced the mock repositories with a live connection to the ASP.NET Core API hosted on Azure App Service and Azure SQL Database.
@@ -40,7 +40,6 @@ This version turns the prototype (version 1.0), which ran on mock data, into a f
 * Prepared for Google Play: permanent app ID (`za.co.legaciesscreenprinters.app`), version 2.0.0, R8 code shrinking, release signing, Play Store icon and feature graphic, and privacy policy and account deletion pages on the website.
 * Replaced the example tests with real unit tests for JWT handling, the auth interceptor, the order repository, stage mapping, dates and security helpers.
 * GitHub Actions now runs lint, unit tests and a debug build on every push, and builds a signed release on version tags.
-* Fixed light-mode text and colours on the login, register, home, order and tracking screens.
 
 ---
 
@@ -72,7 +71,8 @@ LegaciesScreenPrintersAPK/
 │   └── MainActivity.kt       # App entry point and navigation host
 │
 ├── app/src/test/             # Unit tests (JWT, auth interceptor, orders, stages, dates, security)
-├── docs/play-store/          # Google Play icon and feature graphic
+├── docs/play-store/          # Google Play icon, feature graphic and app screenshots
+├── release/                  # Signed release APK
 └── .github/workflows/        # Android CI pipeline
 ```
 
@@ -82,23 +82,23 @@ LegaciesScreenPrintersAPK/
 
 | Login | Register | Home (dark) | Home (light) |
 |---|---|---|---|
-| ![Login](docs/playstore/screemshots/screenshots/01-login.png) | ![Register](docs/screenshots/02-register.png) | ![Home](docs/screenshots/06-home.png) | ![Home light](docs/screenshots/23-home-light.png) |
+| ![Login](docs/play-store/screenshots/01-login.png) | ![Register](docs/play-store/screenshots/02-register.png) | ![Home](docs/play-store/screenshots/06-home.png) | ![Home light](docs/play-store/screenshots/23-home-light.png) |
 
 | Place Order | Order Confirmation | Tracking Timeline | Offline Order History |
 |---|---|---|---|
-| ![Place order](docs/screenshots/11-order-two-designs.png) | ![Confirmation](docs/screenshots/12-order-confirmation.png) | ![Tracking](docs/screenshots/13-track-timeline.png) | ![Offline](docs/screenshots/17-offline-order-history.png) |
+| ![Place order](docs/play-store/screenshots/11-order-two-designs.png) | ![Confirmation](docs/play-store/screenshots/12-order-confirmation.png) | ![Tracking](docs/play-store/screenshots/13-track-timeline.png) | ![Offline](docs/play-store/screenshots/17-offline-order-history.png) |
 
 | Settings | Google Sign-In |
 |---|---|
-| ![Settings](docs/screenshots/20-settings-dark.png) | ![Google sign-in](docs/screenshots/24-google-no-account.png) |
+| ![Settings](docs/play-store/screenshots/20-settings-dark.png) | ![Google sign-in](docs/play-store/screenshots/24-google-no-account.png) |
 
 ---
 
 ## 📦 Preparation for Publication
-* **Signed release:** Built with `./gradlew assembleRelease bundleRelease` using the upload key in `keystore.properties`. The signed APK and App Bundle are attached to the GitHub release.
-* **Store listing assets:** App icon and feature graphic in [`docs/play-store/`](docs/play-store), and app screenshots in [`docs/screenshots/`](docs/screenshots).
+* **Signed release:** Signed with our upload key through Android Studio (Build → Generate Signed App Bundle or APK). Download the signed APK: [`release/LegaciesScreenPrinters-v2.0.0-signed.apk`](release/LegaciesScreenPrinters-v2.0.0-signed.apk)
+* **Store listing assets:** App icon and feature graphic in [`docs/play-store/`](docs/play-store), and app screenshots in [`docs/play-store/screenshots/`](docs/play-store/screenshots).
 * **Policies:** [Privacy policy](https://ethan1ol.github.io/TheDominantDuo_XISD6329/privacy.html) and [account deletion](https://ethan1ol.github.io/TheDominantDuo_XISD6329/delete-account.html) pages, as required by Google Play.
-* **Google Play Console:** ![App uploaded on Google Play Console](docs/screenshots/play-console.png)
+* **Google Play Console:** ![App uploaded on Google Play Console](docs/play-store/screenshots/play-console.png)
 
 ---
 
